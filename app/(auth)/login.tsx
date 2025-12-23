@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { useAuth } from '@/hooks/useAuth';
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signIn, signInWithGoogle } = useAuth();
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-  });
+  const { signIn } = useAuth();
 
   const handleSignIn = async () => {
     console.log('Login attempt started');
@@ -48,27 +40,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        await promptAsync();
-      } else {
-        Alert.alert('Coming Soon', 'Google Sign In is currently available on web only.');
-      }
-    } catch (error) {
-      console.error('Google Sign In error:', error);
-      Alert.alert('Error', 'Failed to sign in with Google');
-    }
-  };
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      signInWithGoogle(id_token).catch(error => {
-        Alert.alert('Error', 'Failed to complete Google sign in');
-      });
-    }
-  }, [response]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,20 +82,6 @@ export default function LoginScreen() {
             onPressIn={() => console.log('Login button pressed')}
           >
             <Text style={styles.buttonText}>Sign In</Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleSignIn}
-            disabled={!request}
-          >
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
           <Link href="/register" asChild>

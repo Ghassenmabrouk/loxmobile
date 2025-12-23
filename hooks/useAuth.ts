@@ -2,8 +2,25 @@ import { useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { User } from 'firebase/auth';
+import { Platform } from 'react-native';
 import { authService } from '@/app/services/authService';
 import { FirebaseUser } from '@/app/types/firebase';
+
+async function setSecureItem(key: string, value: string) {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(key, value);
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
+
+async function deleteSecureItem(key: string) {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(key);
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+}
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -22,13 +39,13 @@ export function useAuth() {
         setUserData(userDoc);
 
         if (userDoc) {
-          await SecureStore.setItemAsync('userRole', userDoc.role);
+          await setSecureItem('userRole', userDoc.role);
         }
       } else {
         setUser(null);
         setUserData(null);
         setIsAuthenticated(false);
-        await SecureStore.deleteItemAsync('userRole');
+        await deleteSecureItem('userRole');
       }
       setIsLoading(false);
     });

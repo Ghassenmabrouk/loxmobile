@@ -38,45 +38,36 @@ const LocationAutocomplete = ({ onSelect, placeholder }: LocationAutocompletePro
   const fetchSuggestions = async (text: string) => {
     console.log('[Autocomplete] Fetching suggestions for:', text);
     setError(null);
-  
+
     setLoading(true);
     try {
-      const response = await axios.get('https://loxuryabackend-1.onrender.com/ride/api/suggestions', {
-        params: { query: text },
-        timeout: 8000
-      });
-      
-      let suggestionsData = [];
-      
-      if (Array.isArray(response.data)) {
-        suggestionsData = response.data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          place_id: item.id
-        }));
-      } 
-      else if (Array.isArray(response.data.data)) {
-        suggestionsData = response.data.data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          place_id: item.id
-        }));
-      }
-      else if (Array.isArray(response.data.suggestions)) {
-        suggestionsData = response.data.suggestions;
-      }
-      else if (Array.isArray(response.data.predictions)) {
-        suggestionsData = response.data.predictions.map((pred: any) => ({
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+      const response = await axios.get(
+        `${supabaseUrl}/functions/v1/places-autocomplete`,
+        {
+          params: {
+            input: text,
+          },
+          headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 8000
+        }
+      );
+
+      if (response.data.status === 'OK' && Array.isArray(response.data.predictions)) {
+        const suggestionsData = response.data.predictions.map((pred: any) => ({
           id: pred.place_id,
           name: pred.description,
           place_id: pred.place_id
         }));
-      }
-  
-      setSuggestions(suggestionsData);
-  
-      if (suggestionsData.length === 0) {
-        console.warn('[Autocomplete] No valid suggestions found in response');
+        setSuggestions(suggestionsData);
+      } else {
+        console.warn('[Autocomplete] No predictions found');
+        setSuggestions([]);
       }
     } catch (error) {
       console.error('[Autocomplete] Error:', error);
@@ -93,10 +84,22 @@ const LocationAutocomplete = ({ onSelect, placeholder }: LocationAutocompletePro
     setError(null);
 
     try {
-      const response = await axios.get('https://loxuryabackend-1.onrender.com/ride/api/place-details', {
-        params: { place_id: placeId },
-        timeout: 8000
-      });
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+      const response = await axios.get(
+        `${supabaseUrl}/functions/v1/place-details`,
+        {
+          params: {
+            place_id: placeId,
+          },
+          headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 8000
+        }
+      );
 
       if (!response.data.result) {
         throw new Error('Invalid place details response');

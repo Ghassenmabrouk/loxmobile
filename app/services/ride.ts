@@ -1,19 +1,31 @@
-// app/services/ride.ts
-import axios from 'axios';
-
-const API_BASE_URL = 'https://loxuryabackend-1.onrender.com/ride';
+import { db } from './firebase';
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  orderBy,
+  Timestamp
+} from 'firebase/firestore';
 
 export const RideService = {
   createRide: async (rideData: any) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/create`, rideData, {
-        headers: {
-          'Content-Type': 'application/json',
-          // Add authorization header if needed
-          // 'Authorization': `Bearer ${token}`
-        }
+      const ridesRef = collection(db, 'rides');
+      const docRef = await addDoc(ridesRef, {
+        ...rideData,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       });
-      return response.data;
+
+      return {
+        id: docRef.id,
+        ...rideData
+      };
     } catch (error) {
       console.error('Error creating ride:', error);
       throw error;
@@ -22,41 +34,47 @@ export const RideService = {
 
   getUserRides: async (userId: string) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/myrides`, {
-        headers: {
-          // Add authorization header if needed
-          // 'Authorization': `Bearer ${token}`
-        },
-        params: { userId }
-      });
-      return response.data;
+      const ridesRef = collection(db, 'rides');
+      const q = query(
+        ridesRef,
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const rides = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      return rides;
     } catch (error) {
       console.error('Error fetching user rides:', error);
       throw error;
     }
   },
 
-  // Add other methods as needed
-  getRoute: async (start: string, end: string) => {
+  updateRide: async (rideId: string, updates: any) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/route`, {
-        params: { start, end }
+      const rideRef = doc(db, 'rides', rideId);
+      await updateDoc(rideRef, {
+        ...updates,
+        updatedAt: Timestamp.now()
       });
-      return response.data;
+
+      return { id: rideId, ...updates };
     } catch (error) {
-      console.error('Error fetching route:', error);
+      console.error('Error updating ride:', error);
       throw error;
     }
   },
 
-  getSuggestions: async (query: string) => {
+  deleteRide: async (rideId: string) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/suggestions`, {
-        params: { query }
-      });
-      return response.data;
+      const rideRef = doc(db, 'rides', rideId);
+      await deleteDoc(rideRef);
     } catch (error) {
-      console.error('Error fetching suggestions:', error);
+      console.error('Error deleting ride:', error);
       throw error;
     }
   }

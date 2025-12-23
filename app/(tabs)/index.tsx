@@ -57,25 +57,24 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const fetchRideData = async () => {
-      if (!user?._id) return;
-      
+      if (!user?.uid) return;
+
       try {
-        const rides = await RideService.getUserRides(user._id);
+        const rides = await RideService.getUserRides(user.uid);
         setTotalRides(rides.length);
-        
-        // Find the most recent upcoming ride with proper typing
+
         const upcoming = rides
           .filter((ride: Ride) => ['pending', 'confirmed'].includes(ride.status))
-          .sort((a: Ride, b: Ride) => 
+          .sort((a: Ride, b: Ride) =>
             new Date(b.pickupDate).getTime() - new Date(a.pickupDate).getTime()
           )[0];
-        
+
         setUpcomingRide(upcoming || null);
       } catch (error) {
         console.error('Failed to fetch rides:', error);
       }
     };
-  
+
     fetchRideData();
   }, [user]);
   
@@ -142,8 +141,8 @@ export default function HomeScreen() {
   
       // Prepare the ride data according to your schema
       const rideData = {
-        name: user.username || 'Guest',
-        userId: user._id,
+        name: user.displayName || user.email?.split('@')[0] || 'Guest',
+        userId: user.uid,
         pickupDate: formattedDate,
         pickupTime: formattedTime,
         pickupLocation: {
@@ -151,16 +150,17 @@ export default function HomeScreen() {
           locationName: 'Current Location'
         },
         destinations: [{
-          location: destinationCoords 
+          location: destinationCoords
             ? `${destinationCoords.lat},${destinationCoords.lng}`
-            : destination, // Fallback to address if no coordinates
+            : destination,
           destinationName: destination,
-          stoppingTime: null // Can be updated later
+          stoppingTime: null
         }],
         passengers: 1,
-        contact: user.phoneNumber || '', // Add user's contact info
-        specialRequests: '', // Can be added from UI if needed
+        contact: contactNumber || user.phoneNumber || '',
+        specialRequests: '',
         carMake: selectedCar.name,
+        estimatedPrice: calculatePrice(selectedCar),
         status: 'pending',
         driverDetails: {
           idCard: null,
@@ -379,7 +379,7 @@ export default function HomeScreen() {
             />
             <View>
               <Text style={styles.greeting}>Welcome,</Text>
-              <Text style={styles.name}>{user?.username || 'Guest'}</Text>
+              <Text style={styles.name}>{user?.displayName || user?.email?.split('@')[0] || 'Guest'}</Text>
             </View>
           </View>
         </View>
@@ -540,60 +540,65 @@ export default function HomeScreen() {
                 ))}
               </ScrollView>
             ) : (
-              <>
-                <View style={styles.locationContainer}>
-                  <View style={styles.searchBar}>
-                    <Ionicons name="location" size={20} color="#666" />
-                    <Text style={styles.currentLocation}>
+              <ScrollView
+                style={styles.bookingFormScroll}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.selectedCarPreview}>
+                  <Image source={{ uri: selectedCar.image }} style={styles.previewCarImage} />
+                  <Text style={styles.previewCarName}>{selectedCar.name}</Text>
+                  <Text style={styles.previewPrice}>${calculatePrice(selectedCar)}</Text>
+                </View>
+
+                <View style={styles.formSection}>
+                  <Text style={styles.sectionLabel}>PICKUP LOCATION</Text>
+                  <View style={styles.compactInput}>
+                    <Ionicons name="location-outline" size={18} color="#D4AF37" />
+                    <Text style={styles.compactInputText}>
                       {location ? 'Current Location' : 'Locating...'}
                     </Text>
                   </View>
-
-                  <View style={styles.searchBar}>
-  <Ionicons name="location" size={20} color="#D4AF37" style={styles.searchIcon} />
-  <View style={styles.autocompleteContainer}>
-    <LocationAutocomplete 
-      placeholder="Where to?"
-      onSelect={(address, coordinates) => {
-        setDestination(address);
-        if (coordinates) {
-          setDestinationCoords(coordinates);
-        }
-      }}
-    />
-  </View>
-</View>
                 </View>
 
-                <View style={styles.scheduleDetails}>
-                  <Image source={{ uri: selectedCar.image }} style={styles.modalCarImage} />
-                  <Text style={styles.modalCarName}>{selectedCar.name}</Text>
-                  
-                  <View style={styles.scheduleRow}>
-                    <View style={styles.scheduleItem}>
-                      <Ionicons name="calendar" size={20} color="#666" />
-                      <Text style={styles.scheduleLabel}>Pick-up-Datee</Text>
+                <View style={styles.formSection}>
+                  <Text style={styles.sectionLabel}>DESTINATION</Text>
+                  <View style={styles.compactInput}>
+                    <Ionicons name="flag-outline" size={18} color="#D4AF37" />
+                    <View style={styles.autocompleteWrapper}>
+                      <LocationAutocomplete
+                        placeholder="Where to?"
+                        onSelect={(address, coordinates) => {
+                          setDestination(address);
+                          if (coordinates) {
+                            setDestinationCoords(coordinates);
+                          }
+                        }}
+                      />
                     </View>
+                  </View>
+                </View>
+
+                <View style={styles.formRow}>
+                  <View style={[styles.formSection, styles.halfWidth]}>
+                    <Text style={styles.sectionLabel}>DATE</Text>
                     <TouchableOpacity
-                      style={styles.datePickerButton}
+                      style={styles.compactInput}
                       onPress={() => {
                         setSelectedDate(new Date(scheduledDate));
                         setShowDateModal(true);
                       }}
                     >
-                      <Text style={styles.dateText}>
-                        {scheduledDate.toLocaleDateString()}
+                      <Ionicons name="calendar-outline" size={18} color="#666" />
+                      <Text style={styles.compactInputText}>
+                        {scheduledDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </Text>
                     </TouchableOpacity>
                   </View>
 
-                  <View style={styles.scheduleRow}>
-                    <View style={styles.scheduleItem}>
-                      <Ionicons name="time" size={20} color="#666" />
-                      <Text style={styles.scheduleLabel}>Pick-up-Timee</Text>
-                    </View>
+                  <View style={[styles.formSection, styles.halfWidth]}>
+                    <Text style={styles.sectionLabel}>TIME</Text>
                     <TouchableOpacity
-                      style={styles.datePickerButton}
+                      style={styles.compactInput}
                       onPress={() => {
                         const date = new Date(scheduledDate);
                         setSelectedHours(date.getHours() % 12 || 12);
@@ -602,73 +607,70 @@ export default function HomeScreen() {
                         setShowTimeModal(true);
                       }}
                     >
-                      <Text style={styles.dateText}>
-                        {scheduledDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      <Ionicons name="time-outline" size={18} color="#666" />
+                      <Text style={styles.compactInputText}>
+                        {scheduledDate.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}
                       </Text>
                     </TouchableOpacity>
                   </View>
-                
-                 
-                  <View style={styles.scheduleRow}>
-  <View style={styles.scheduleItem}>
-    <Text style={styles.scheduleLabel}>Contact Number</Text>
-    
-    <TouchableOpacity onPress={() => setIsEditable(!isEditable)}>
-  <Text>{isEditable ? 'Cancel' : 'Edit'}</Text>
-</TouchableOpacity>
-
-    {isEditable && (
-      <TouchableOpacity 
-        onPress={() => {
-          setContactNumber(user?.phoneNumber || '');
-          setIsEditable(false);
-        }}
-        style={styles.resetButton}
-      >
-        <Text style={styles.resetButtonText}>Reset</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-
-  {isEditable ? (
-    <TextInput
-      style={styles.contactInput}
-      placeholder="Enter phone number"
-      placeholderTextColor="#999"
-      value={contactNumber}
-      onChangeText={setContactNumber}
-      keyboardType="phone-pad"
-      autoFocus={true}
-      testID="contact-number-input"
-    />
-  ) : (
-    <TouchableOpacity 
-      style={styles.contactDisplay}
-      onPress={() => setIsEditable(true)}
-    >
-      <Text style={styles.contactNumberText}>
-        {contactNumber || 'Not specified'}
-      </Text>
-    </TouchableOpacity>
-  )}
-</View>
-
-                  <View style={styles.scheduleRow}>
-                    <View style={styles.scheduleItem}>
-                      <Ionicons name="cash" size={20} color="#666" />
-                      <Text style={styles.scheduleLabel}>Estimated Price</Text>
-                    </View>
-                    <Text style={styles.priceText}>${calculatePrice(selectedCar)}</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.confirmButton}
-                    onPress={handleConfirmSchedule}
-                  >
-                    <Text style={styles.confirmButtonText}>Confirm Booking</Text>
-                  </TouchableOpacity>
                 </View>
-              </>
+
+                <View style={styles.formSection}>
+                  <View style={styles.labelRow}>
+                    <Text style={styles.sectionLabel}>CONTACT</Text>
+                    {!isEditable && (
+                      <TouchableOpacity onPress={() => setIsEditable(true)}>
+                        <Text style={styles.editText}>Edit</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {isEditable ? (
+                    <View style={styles.editableContact}>
+                      <TextInput
+                        style={styles.compactContactInput}
+                        placeholder="Phone number"
+                        placeholderTextColor="#999"
+                        value={contactNumber}
+                        onChangeText={setContactNumber}
+                        keyboardType="phone-pad"
+                        autoFocus={true}
+                      />
+                      <View style={styles.contactActions}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setContactNumber(user?.phoneNumber || '');
+                            setIsEditable(false);
+                          }}
+                          style={styles.contactActionBtn}
+                        >
+                          <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => setIsEditable(false)}
+                          style={styles.contactActionBtn}
+                        >
+                          <Text style={styles.saveText}>Save</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.compactInput}>
+                      <Ionicons name="call-outline" size={18} color="#666" />
+                      <Text style={styles.compactInputText}>
+                        {contactNumber || 'Not specified'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={styles.luxuryConfirmButton}
+                  onPress={handleConfirmSchedule}
+                >
+                  <Text style={styles.luxuryConfirmText}>Confirm Booking</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#fff" />
+                </TouchableOpacity>
+              </ScrollView>
             )}
           </View>
         </View>
@@ -681,43 +683,137 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  scheduleItem: {
+  bookingFormScroll: {
+    flex: 1,
+  },
+  selectedCarPreview: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginBottom: 20,
+  },
+  previewCarImage: {
+    width: 120,
+    height: 70,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  previewCarName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  previewPrice: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#D4AF37',
+    letterSpacing: 0.5,
+  },
+  formSection: {
+    marginBottom: 16,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  halfWidth: {
+    flex: 1,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#999',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  editText: {
+    fontSize: 13,
+    color: '#D4AF37',
+    fontWeight: '600',
+  },
+  compactInput: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  editButton: {
-    marginLeft: 8,
-  },
-  editButtonText: {
-    color: '#D4AF37',
-    fontSize: 14,
-  },
-  resetButton: {
-    marginLeft: 8,
-  },
-  resetButtonText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  contactInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1a1a1a',
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    backgroundColor: '#fafafa',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#e8e8e8',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    gap: 10,
   },
-  contactDisplay: {
+  compactInputText: {
+    fontSize: 15,
+    color: '#1a1a1a',
     flex: 1,
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
   },
-  contactNumberText: {
-    fontSize: 16,
+  autocompleteWrapper: {
+    flex: 1,
+  },
+  editableContact: {
+    gap: 8,
+  },
+  compactContactInput: {
+    backgroundColor: '#fafafa',
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#1a1a1a',
+  },
+  contactActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  contactActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+  },
+  cancelText: {
+    fontSize: 14,
     color: '#666',
+    fontWeight: '600',
+  },
+  saveText: {
+    fontSize: 14,
+    color: '#D4AF37',
+    fontWeight: '600',
+  },
+  luxuryConfirmButton: {
+    flexDirection: 'row',
+    backgroundColor: '#1a1a1a',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    marginBottom: 20,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  luxuryConfirmText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
   container: {
     flex: 1,
@@ -963,7 +1059,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',

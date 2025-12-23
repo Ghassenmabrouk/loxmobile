@@ -1,69 +1,120 @@
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
-const RIDES = [
-  {
-    id: '1',
-    date: 'Today',
-    time: '14:30',
-    from: '123 Park Avenue',
-    to: 'JFK Airport',
-    car: 'Mercedes S-Class',
-    status: 'Upcoming',
-  },
-  {
-    id: '2',
-    date: 'Yesterday',
-    time: '19:45',
-    from: 'Grand Central',
-    to: 'The Plaza Hotel',
-    car: 'BMW 7 Series',
-    status: 'Completed',
-  },
-];
+import { useAuth } from '@/hooks/useAuth';
+import { RideService } from '@/app/services/ride';
+import type { Ride } from '@/app/types/ride';
 
 export default function RidesScreen() {
+  const { user } = useAuth();
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRides = async () => {
+      if (!user?.uid) return;
+
+      try {
+        const userRides = await RideService.getUserRides(user.uid);
+        setRides(userRides);
+      } catch (error) {
+        console.error('Failed to fetch rides:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRides();
+  }, [user]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+      case 'confirmed':
+        return '#D4AF37';
+      case 'completed':
+        return '#4CAF50';
+      case 'cancelled':
+        return '#ff5252';
+      default:
+        return '#666';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#D4AF37" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Rides</Text>
       </View>
 
-      <FlatList
-        data={RIDES}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.rideCard}>
-            <View style={styles.rideHeader}>
-              <View style={styles.dateTime}>
-                <Ionicons name="calendar" size={16} color="#666" />
-                <Text style={styles.dateTimeText}>{item.date}</Text>
-                <Ionicons name="time" size={16} color="#666" />
-                <Text style={styles.dateTimeText}>{item.time}</Text>
+      {rides.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="car-outline" size={64} color="#e0e0e0" />
+          <Text style={styles.emptyText}>No rides yet</Text>
+          <Text style={styles.emptySubtext}>Book your first luxury ride</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={rides}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.rideCard}>
+              <View style={styles.rideHeader}>
+                <View style={styles.dateTime}>
+                  <Ionicons name="calendar" size={16} color="#666" />
+                  <Text style={styles.dateTimeText}>{item.pickupDate}</Text>
+                  <Ionicons name="time" size={16} color="#666" />
+                  <Text style={styles.dateTimeText}>{item.pickupTime}</Text>
+                </View>
+                <Text style={[
+                  styles.status,
+                  { color: getStatusColor(item.status) }
+                ]}>
+                  {getStatusText(item.status)}
+                </Text>
               </View>
-              <Text style={[
-                styles.status,
-                { color: item.status === 'Upcoming' ? '#D4AF37' : '#4CAF50' }
-              ]}>{item.status}</Text>
-            </View>
 
-            <View style={styles.locations}>
-              <View style={styles.location}>
-                <Ionicons name="location" size={16} color="#666" />
-                <Text style={styles.locationText}>{item.from}</Text>
+              <View style={styles.locations}>
+                <View style={styles.location}>
+                  <Ionicons name="location" size={16} color="#666" />
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {item.pickupLocation?.locationName || 'Pickup location'}
+                  </Text>
+                </View>
+                <View style={styles.location}>
+                  <Ionicons name="location" size={16} color="#D4AF37" />
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {item.destinations?.[0]?.destinationName || 'Destination'}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.location}>
-                <Ionicons name="location" size={16} color="#D4AF37" />
-                <Text style={styles.locationText}>{item.to}</Text>
+
+              <View style={styles.rideFooter}>
+                <Text style={styles.carName}>{item.carMake}</Text>
+                {item.estimatedPrice && (
+                  <Text style={styles.priceText}>${item.estimatedPrice}</Text>
+                )}
               </View>
             </View>
-
-            <Text style={styles.carName}>{item.car}</Text>
-          </View>
-        )}
-        contentContainerStyle={styles.list}
-      />
+          )}
+          contentContainerStyle={styles.list}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -136,8 +187,40 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   carName: {
-    fontFamily: 'Inter-SemiBold',
     fontSize: 14,
+    fontWeight: '600',
     color: '#666',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
+  },
+  rideFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#D4AF37',
   },
 });

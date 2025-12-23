@@ -11,7 +11,6 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -53,7 +52,7 @@
       "typedRoutes": true
     },
     "extra": {
-  "apiUrl": "http://your-backend-url.com/api"
-}
+      "apiUrl": "http://your-backend-url.com/api"
+    }
   }
 }

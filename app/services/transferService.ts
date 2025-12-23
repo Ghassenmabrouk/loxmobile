@@ -21,11 +21,21 @@ function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function generateQRCodeData(transferId: string, verificationCode: string, userId: string): string {
+  return JSON.stringify({
+    transferId,
+    verificationCode,
+    userId,
+    timestamp: Date.now()
+  });
+}
+
 export const transferService = {
   async createTransfer(
     userId: string,
     userName: string,
     userEmail: string,
+    userPhone: string,
     pickupLocation: TransferLocation,
     dropoffLocation: TransferLocation,
     pickupDate: Date,
@@ -35,10 +45,13 @@ export const transferService = {
     price: number,
     notes?: string
   ): Promise<string> {
-    const transfer: Omit<FirebaseTransfer, 'createdAt' | 'updatedAt'> & { createdAt: any; updatedAt: any } = {
+    const verificationCode = generateVerificationCode();
+
+    const transfer: Omit<FirebaseTransfer, 'createdAt' | 'updatedAt' | 'qrCodeData'> & { createdAt: any; updatedAt: any; qrCodeData: string } = {
       userId,
       userName,
       userEmail,
+      userPhone,
       pickupLocation,
       dropoffLocation,
       pickupDate: Timestamp.fromDate(pickupDate),
@@ -46,7 +59,8 @@ export const transferService = {
       carType,
       passengers,
       price,
-      verificationCode: generateVerificationCode(),
+      verificationCode,
+      qrCodeData: '',
       status: 'pending',
       notes,
       createdAt: serverTimestamp(),
@@ -54,6 +68,13 @@ export const transferService = {
     };
 
     const docRef = await addDoc(collection(db, 'transfers'), transfer);
+
+    const qrCodeData = generateQRCodeData(docRef.id, verificationCode, userId);
+    await updateDoc(doc(db, 'transfers', docRef.id), {
+      qrCodeData,
+      updatedAt: serverTimestamp()
+    });
+
     return docRef.id;
   },
 
@@ -118,13 +139,17 @@ export const transferService = {
     transferId: string,
     driverId: string,
     driverName: string,
-    driverPhone: string
+    driverPhone: string,
+    driverPhoto?: string,
+    driverRating?: number
   ): Promise<void> {
     const docRef = doc(db, 'transfers', transferId);
     await updateDoc(docRef, {
       driverId,
       driverName,
       driverPhone,
+      driverPhoto,
+      driverRating,
       status: 'confirmed',
       updatedAt: serverTimestamp()
     });
@@ -202,6 +227,106 @@ export const transferService = {
         ...doc.data()
       })) as Array<FirebaseTransfer & { id: string }>;
       callback(transfers);
+    });
+  },
+
+  async verifyQRCode(scannedData: string, transferId: string): Promise<boolean> {
+    try {
+      const parsedData = JSON.parse(scannedData);
+      const transfer = await transferService.getTransferById(transferId);
+
+      if (!transfer) {
+        return false;
+      }
+
+      if (
+        parsedData.transferId === transferId &&
+        parsedData.verificationCode === transfer.verificationCode &&
+        parsedData.userId === transfer.userId
+      ) {
+        await updateDoc(doc(db, 'transfers', transferId), {
+          qrCodeScanned: true,
+          qrCodeScannedAt: serverTimestamp(),
+          status: 'in-progress',
+          startTime: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('QR verification error:', error);
+      return false;
+    }
+  },
+
+  async triggerSOS(transferId: string): Promise<void> {
+    const docRef = doc(db, 'transfers', transferId);
+    await updateDoc(docRef, {
+      sosTriggered: true,
+      sosTimestamp: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  },
+
+  async getDriverActiveTransfer(driverId: string): Promise<(FirebaseTransfer & { id: string }) | null> {
+    const q = query(
+      collection(db, 'transfers'),
+      where('driverId', '==', driverId),
+      where('status', 'in', ['confirmed', 'in-progress']),
+      orderBy('pickupDate', 'desc'),
+      limit(1)
+    );
+
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+      return null;
+    }
+
+    const docSnap = querySnapshot.docs[0];
+    return {
+      id: docSnap.id,
+      ...docSnap.data()
+    } as FirebaseTransfer & { id: string };
+  },
+
+  async getDriverPendingTransfers(driverId: string): Promise<Array<FirebaseTransfer & { id: string }>> {
+    const q = query(
+      collection(db, 'transfers'),
+      where('driverId', '==', driverId),
+      where('status', '==', 'confirmed'),
+      orderBy('pickupDate', 'asc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Array<FirebaseTransfer & { id: string }>;
+  },
+
+  async startRide(transferId: string): Promise<void> {
+    const docRef = doc(db, 'transfers', transferId);
+    await updateDoc(docRef, {
+      status: 'in-progress',
+      startTime: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  },
+
+  async completeRide(
+    transferId: string,
+    actualDuration: number,
+    actualDistance: number
+  ): Promise<void> {
+    const docRef = doc(db, 'transfers', transferId);
+    await updateDoc(docRef, {
+      status: 'completed',
+      endTime: serverTimestamp(),
+      actualDuration,
+      actualDistance,
+      updatedAt: serverTimestamp()
     });
   }
 };

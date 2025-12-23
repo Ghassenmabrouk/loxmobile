@@ -40,6 +40,7 @@ export interface FirebaseTransfer {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone?: string;
   pickupLocation: TransferLocation;
   dropoffLocation: TransferLocation;
   pickupDate: Timestamp;
@@ -48,13 +49,20 @@ export interface FirebaseTransfer {
   passengers: number;
   price: number;
   verificationCode: string;
+  qrCodeData: string;
   status: TransferStatus;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   driverId?: string;
   driverName?: string;
   driverPhone?: string;
+  driverPhoto?: string;
+  driverRating?: number;
   driverLocation?: LocationCoords;
+  qrCodeScanned?: boolean;
+  qrCodeScannedAt?: Timestamp;
+  startTime?: Timestamp;
+  endTime?: Timestamp;
   estimatedDuration?: number;
   estimatedDistance?: number;
   actualDuration?: number;
@@ -62,6 +70,8 @@ export interface FirebaseTransfer {
   notes?: string;
   rating?: number;
   review?: string;
+  sosTriggered?: boolean;
+  sosTimestamp?: Timestamp;
 }
 
 export interface FirebaseDriver {

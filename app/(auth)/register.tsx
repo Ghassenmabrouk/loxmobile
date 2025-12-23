@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,7 +8,16 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const { signUp } = useAuth();
+
+  const handleSignUp = async () => {
+    try {
+      await signUp(name, email, password, phoneNumber);
+    } catch (error) {
+      Alert.alert('Registration Failed', error instanceof Error ? error.message : 'An error occurred');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,6 +48,14 @@ export default function RegisterScreen() {
           />
           <TextInput
             style={styles.input}
+            placeholder="Phone Number"
+            placeholderTextColor="#666"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+          />
+          <TextInput
+            style={styles.input}
             placeholder="Password"
             placeholderTextColor="#666"
             value={password}
@@ -46,7 +63,7 @@ export default function RegisterScreen() {
             secureTextEntry
           />
 
-          <TouchableOpacity style={styles.button} onPress={() => signUp(name, email, password)}>
+          <TouchableOpacity style={styles.button} onPress={handleSignUp}>
             <Text style={styles.buttonText}>Create Account</Text>
           </TouchableOpacity>
 

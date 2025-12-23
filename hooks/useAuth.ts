@@ -1,240 +1,158 @@
 import { useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
-import { User } from '@/app/types/user';
-import { API_URL } from '@/app/services/config';
-
-type AuthError = {
-  message: string;
-  status?: number;
-};
-
-function isAuthError(error: unknown): error is AuthError {
-  return typeof error === 'object' && error !== null && 'message' in error;
-}
+import { User } from 'firebase/auth';
+import { authService } from '@/app/services/authService';
+import { FirebaseUser } from '@/app/types/firebase';
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  async function checkAuth() {
-    try {
-      console.log('[AUTH] Checking authentication status...');
-      const token = await SecureStore.getItemAsync('authToken');
-      const userDataString = await SecureStore.getItemAsync('userData');
-      
-      console.log('[AUTH] Token exists:', !!token);
-      console.log('[AUTH] User data exists:', !!userDataString);
-
-      if (token && userDataString) {
-        const userData = JSON.parse(userDataString);
-        console.log('[AUTH] Retrieved user data from storage:', userData);
-        setUser(userData);
+    const unsubscribe = authService.onAuthStateChange(async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
         setIsAuthenticated(true);
-      } else if (token && !userDataString) {
-        // If we have token but no user data, fetch fresh user data
-        await fetchUserData(token);
-      }
-    } catch (error) {
-      console.error('[AUTH] Error during checkAuth:', error);
-    } finally {
-      console.log('[AUTH] Auth check completed');
-      setIsLoading(false);
-    }
-  }
 
-  async function fetchUserData(token: string) {
-    try {
-      console.log('[AUTH] Fetching fresh user data...');
-      const response = await fetch(`${API_URL}/user`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+        const userDoc = await authService.getUserData(firebaseUser.uid);
+        setUserData(userDoc);
 
-      if (response.ok) {
-        const userData = await response.json();
-        console.log('[AUTH] Fetched user data:', userData);
-        const mappedUser = mapBackendUserToFrontend(userData);
-        await SecureStore.setItemAsync('userData', JSON.stringify(mappedUser));
-        setUser(mappedUser);
-        setIsAuthenticated(true);
+        if (userDoc) {
+          await SecureStore.setItemAsync('userRole', userDoc.role);
+        }
       } else {
-        console.log('[AUTH] Failed to fetch user data, logging out...');
-        await signOut();
+        setUser(null);
+        setUserData(null);
+        setIsAuthenticated(false);
+        await SecureStore.deleteItemAsync('userRole');
       }
-    } catch (error) {
-      console.error('[AUTH] Error fetching user data:', error);
-      await signOut();
-    }
-  }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   async function signIn(email: string, password: string) {
     setIsLoading(true);
     setError(null);
 
     try {
-      const url = `${API_URL}/login/login`;
-      console.log('[AUTH] Making login request to:', url);
-      console.log('[AUTH] Request payload:', { email, password: '*****' });
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      console.log('[AUTH] Login response status:', response.status);
-      
-      const data = await response.json();
-      console.log('[AUTH] Login response data:', data);
-
-      if (!response.ok) {
-        const errorMessage = data.message || 'Login failed';
-        console.error('[AUTH] Login failed:', errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      console.log('[AUTH] Storing auth token...');
-      await SecureStore.setItemAsync('authToken', data.token);
-      
-      console.log('[AUTH] Mapping user data...');
-      const authenticatedUser = mapBackendUserToFrontend(data.userInfo);
-      
-      console.log('[AUTH] Storing user data...');
-      await SecureStore.setItemAsync('userData', JSON.stringify(authenticatedUser));
-      
-      setUser(authenticatedUser);
-      setIsAuthenticated(true);
-      
-      console.log('[AUTH] Login successful, navigating to tabs...');
+      const user = await authService.signInWithEmail(email, password);
+      console.log('[AUTH] Login successful:', user.email);
       router.replace('/(tabs)');
-    } catch (error) {
-      const errorMessage = isAuthError(error) ? error.message : 'Login failed';
-      console.error('[AUTH] Error during signIn:', errorMessage);
+    } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error);
+      console.error('[AUTH] Login error:', errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
-      console.log('[AUTH] SignIn process completed');
       setIsLoading(false);
     }
   }
 
-  async function signUp(userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phoneNumber: string;
-    password: string;
-    gender?: string;
-  }) {
+  async function signUp(
+    name: string,
+    email: string,
+    password: string,
+    phoneNumber?: string,
+    gender?: string
+  ) {
     setIsLoading(true);
     setError(null);
-    console.log('[AUTH] Starting signUp process...');
 
     try {
-      const registrationData = {
-        username: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email,
-        phoneNumber: userData.phoneNumber,
-        password: userData.password,
-        gender: userData.gender || 'not specified',
-      };
+      const [firstName, ...lastNameParts] = name.split(' ');
+      const lastName = lastNameParts.join(' ') || firstName;
 
-      const url = `${API_URL}/register`;
-      console.log('[AUTH] Making registration request to:', url);
-      console.log('[AUTH] Registration payload:', {
-        ...registrationData,
-        password: '*****'
-      });
+      const user = await authService.signUpWithEmail(
+        email,
+        password,
+        firstName,
+        lastName,
+        phoneNumber || '',
+        gender
+      );
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registrationData),
-      });
-
-      console.log('[AUTH] Registration response status:', response.status);
-      const data = await response.json();
-      console.log('[AUTH] Registration response data:', data);
-
-      if (!response.ok) {
-        const errorMessage = data.message || 'Registration failed';
-        console.error('[AUTH] Registration failed:', errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      console.log('[AUTH] Registration successful, auto-logging in...');
-      await signIn(userData.email, userData.password);
-    } catch (error) {
-      const errorMessage = isAuthError(error) ? error.message : 'Registration failed';
-      console.error('[AUTH] Error during signUp:', errorMessage);
+      console.log('[AUTH] Registration successful:', user.email);
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error);
+      console.error('[AUTH] Registration error:', errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
-      console.log('[AUTH] SignUp process completed');
+      setIsLoading(false);
+    }
+  }
+
+  async function signInWithGoogle(idToken: string) {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const user = await authService.signInWithGoogle(idToken);
+      console.log('[AUTH] Google login successful:', user.email);
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error);
+      console.error('[AUTH] Google login error:', errorMessage);
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
       setIsLoading(false);
     }
   }
 
   async function signOut() {
     try {
-      console.log('[AUTH] Starting signOut process...');
-      
-      const url = `${API_URL}/logout`;
-      console.log('[AUTH] Making logout request to:', url);
-      
-      await fetch(url, { method: 'POST' });
-      await SecureStore.deleteItemAsync('authToken');
-      await SecureStore.deleteItemAsync('userData');
-      
-      console.log('[AUTH] SignOut successful, clearing state...');
-      setIsAuthenticated(false);
-      setUser(null);
+      await authService.signOut();
+      console.log('[AUTH] Logout successful');
       router.replace('/login');
-    } catch (error) {
-      const errorMessage = isAuthError(error) ? error.message : 'Failed to sign out';
-      console.error('[AUTH] Error during signOut:', errorMessage);
+    } catch (error: any) {
+      const errorMessage = getFirebaseErrorMessage(error);
+      console.error('[AUTH] Logout error:', errorMessage);
       setError(errorMessage);
     }
   }
 
-  function mapBackendUserToFrontend(backendUser: any): User {
-    console.log('[AUTH] Mapping backend user to frontend type:', backendUser);
-    if (!backendUser) {
-      throw new Error('No user data received from backend');
+  function getFirebaseErrorMessage(error: any): string {
+    if (!error?.code) return error?.message || 'An error occurred';
+
+    switch (error.code) {
+      case 'auth/invalid-email':
+        return 'Invalid email address';
+      case 'auth/user-disabled':
+        return 'This account has been disabled';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'Invalid email or password';
+      case 'auth/email-already-in-use':
+        return 'Email already in use';
+      case 'auth/weak-password':
+        return 'Password is too weak';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your connection';
+      case 'auth/too-many-requests':
+        return 'Too many attempts. Please try again later';
+      default:
+        return error.message || 'An error occurred';
     }
-    
-    return {
-      _id: backendUser.id,
-      username: backendUser.name,
-      email: backendUser.email,
-      phoneNumber: backendUser.phoneNumber,
-      role: backendUser.role,
-      gender: backendUser.gender,
-      photo: backendUser.photo,
-      vipAccess: backendUser.vip,
-      vipExpiresAt: backendUser.vipExpiresAt ? new Date(backendUser.vipExpiresAt) : null,
-    };
   }
 
   return {
     isAuthenticated,
     user,
+    userData,
     isLoading,
     error,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
   };
 }

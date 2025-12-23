@@ -6,14 +6,14 @@ import { useLocation } from '@/hooks/useLocation';
 
 let MapView: any;
 let Marker: any;
+let Polyline: any;
 let PROVIDER_GOOGLE: any;
-let MapViewDirections: any;
 
 if (Platform.OS !== 'web') {
   MapView = require('react-native-maps').default;
   Marker = require('react-native-maps').Marker;
+  Polyline = require('react-native-maps').Polyline;
   PROVIDER_GOOGLE = require('react-native-maps').PROVIDER_GOOGLE;
-  MapViewDirections = require('react-native-maps-directions').default;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -36,10 +36,20 @@ export default function TrackScreen() {
   const { location } = useLocation();
   const [driverLocation, setDriverLocation] = useState(DRIVER_LOCATION);
   const [estimatedTime, setEstimatedTime] = useState('15');
-  const GOOGLE_MAPS_API_KEY = 'AIzaSyAH5EZt8YgjuC_3JW292pKQciyZH_1KUVQ';
+  const [routeCoordinates, setRouteCoordinates] = useState<any[]>([]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
+
+    const simulatedRoute = [
+      DRIVER_LOCATION,
+      { latitude: 40.7228, longitude: -73.9960 },
+      { latitude: 40.7328, longitude: -73.9860 },
+      { latitude: 40.7428, longitude: -73.9860 },
+      { latitude: 40.7514, longitude: -73.9826 },
+      DESTINATION,
+    ];
+    setRouteCoordinates(simulatedRoute);
 
     const interval = setInterval(() => {
       setDriverLocation(prev => ({
@@ -90,17 +100,13 @@ export default function TrackScreen() {
               <View style={styles.destinationMarker} />
             </Marker>
 
-            <MapViewDirections
-              origin={driverLocation}
-              destination={DESTINATION}
-              apikey={GOOGLE_MAPS_API_KEY}
-              strokeWidth={3}
-              strokeColor="#D4AF37"
-              optimizeWaypoints={true}
-              onReady={result => {
-                setEstimatedTime(Math.ceil(result.duration).toString());
-              }}
-            />
+            {routeCoordinates.length > 0 && (
+              <Polyline
+                coordinates={routeCoordinates}
+                strokeWidth={3}
+                strokeColor="#D4AF37"
+              />
+            )}
           </MapView>
         )}
       </View>

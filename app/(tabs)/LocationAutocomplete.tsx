@@ -146,7 +146,7 @@ const LocationAutocomplete = ({ onSelect, placeholder }: LocationAutocompletePro
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <MapPin size={20} color="#D4AF37" style={styles.icon} />
+        <Ionicons name="location" size={20} color="#D4AF37" style={styles.icon} />
         <TextInput
           style={styles.input}
           placeholder={placeholder}

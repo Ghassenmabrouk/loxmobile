@@ -109,7 +109,7 @@ export default function TrackScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Your ride is on the way</Text>
           <View style={styles.timeContainer}>
-            <Clock size={20} color="#D4AF37" />
+            <Ionicons name="time" size={20} color="#D4AF37" />
             <Text style={styles.time}>{estimatedTime} min</Text>
           </View>
         </View>
@@ -129,15 +129,15 @@ export default function TrackScreen() {
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.actionButton}>
-            <Phone size={24} color="#1a1a1a" />
+            <Ionicons name="call" size={24} color="#1a1a1a" />
             <Text style={styles.actionText}>Call</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <MessageSquare size={24} color="#1a1a1a" />
+            <Ionicons name="chatbubble" size={24} color="#1a1a1a" />
             <Text style={styles.actionText}>Message</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Shield size={24} color="#1a1a1a" />
+            <Ionicons name="shield" size={24} color="#1a1a1a" />
             <Text style={styles.actionText}>Safety</Text>
           </TouchableOpacity>
         </View>

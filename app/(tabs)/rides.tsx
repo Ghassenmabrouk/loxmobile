@@ -37,9 +37,9 @@ export default function RidesScreen() {
           <View style={styles.rideCard}>
             <View style={styles.rideHeader}>
               <View style={styles.dateTime}>
-                <Calendar size={16} color="#666" />
+                <Ionicons name="calendar" size={16} color="#666" />
                 <Text style={styles.dateTimeText}>{item.date}</Text>
-                <Clock size={16} color="#666" />
+                <Ionicons name="time" size={16} color="#666" />
                 <Text style={styles.dateTimeText}>{item.time}</Text>
               </View>
               <Text style={[
@@ -50,11 +50,11 @@ export default function RidesScreen() {
 
             <View style={styles.locations}>
               <View style={styles.location}>
-                <MapPin size={16} color="#666" />
+                <Ionicons name="location" size={16} color="#666" />
                 <Text style={styles.locationText}>{item.from}</Text>
               </View>
               <View style={styles.location}>
-                <MapPin size={16} color="#D4AF37" />
+                <Ionicons name="location" size={16} color="#D4AF37" />
                 <Text style={styles.locationText}>{item.to}</Text>
               </View>
             </View>

@@ -392,7 +392,7 @@ export default function HomeScreen() {
               setShowScheduleModal(true);
             }}
           >
-            <Car size={24} color="#fff" />
+            <Ionicons name="car" size={24} color="#fff" />
             <Text style={styles.actionButtonText}>Book a Ride</Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -400,7 +400,7 @@ export default function HomeScreen() {
             onPress={handleTrackRide}
             disabled={!upcomingRide}
           >
-            <Navigation size={24} color="#1a1a1a" />
+            <Ionicons name="navigate" size={24} color="#1a1a1a" />
             <Text style={styles.trackButtonText}>Track Ride</Text>
           </TouchableOpacity>
         </View>
@@ -451,13 +451,13 @@ export default function HomeScreen() {
           {upcomingRide.pickupDate ? new Date(upcomingRide.pickupDate).toLocaleString() : 'Date not specified'}
         </Text>
         <View style={styles.locationInfo}>
-          <MapPin size={16} color="#666" />
+          <Ionicons name="location" size={16} color="#666" />
           <Text style={styles.locationText} numberOfLines={1}>
             {upcomingRide.pickupLocation?.locationName || 'Current Location'}
           </Text>
         </View>
         <View style={styles.locationInfo}>
-          <MapPin size={16} color="#D4AF37" />
+          <Ionicons name="location" size={16} color="#D4AF37" />
           <Text style={styles.locationText} numberOfLines={1}>
             {upcomingRide.destinations?.[0]?.destinationName || 'Destination not specified'}
           </Text>
@@ -485,13 +485,13 @@ export default function HomeScreen() {
               <Text style={styles.carName}>{car.name}</Text>
               <View style={styles.carDetails}>
                 <View style={styles.detail}>
-                  <Clock size={16} color="#666" />
+                  <Ionicons name="time" size={16} color="#666" />
                   <Text style={styles.detailText}>{car.eta} mins away</Text>
                 </View>
                 <Text style={styles.price}>${calculatePrice(car)}</Text>
               </View>
             </View>
-            <ChevronRight size={20} color="#D4AF37" />
+            <Ionicons name="chevron-forward" size={20} color="#D4AF37" />
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -512,7 +512,7 @@ export default function HomeScreen() {
                 onPress={() => setShowScheduleModal(false)}
                 style={styles.closeButton}
               >
-                <X size={24} color="#1a1a1a" />
+                <Ionicons name="close" size={24} color="#1a1a1a" />
               </TouchableOpacity>
             </View>
 
@@ -529,13 +529,13 @@ export default function HomeScreen() {
                       <Text style={styles.modalCarName}>{car.name}</Text>
                       <View style={styles.modalCarDetails}>
                         <View style={styles.detail}>
-                          <Clock size={16} color="#666" />
+                          <Ionicons name="time" size={16} color="#666" />
                           <Text style={styles.detailText}>{car.eta} mins away</Text>
                         </View>
                         <Text style={styles.price}>${calculatePrice(car)}</Text>
                       </View>
                     </View>
-                    <ChevronRight size={20} color="#D4AF37" />
+                    <Ionicons name="chevron-forward" size={20} color="#D4AF37" />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -543,14 +543,14 @@ export default function HomeScreen() {
               <>
                 <View style={styles.locationContainer}>
                   <View style={styles.searchBar}>
-                    <MapPin size={20} color="#666" />
+                    <Ionicons name="location" size={20} color="#666" />
                     <Text style={styles.currentLocation}>
                       {location ? 'Current Location' : 'Locating...'}
                     </Text>
                   </View>
 
                   <View style={styles.searchBar}>
-  <MapPin size={20} color="#D4AF37" style={styles.searchIcon} />
+  <Ionicons name="location" size={20} color="#D4AF37" style={styles.searchIcon} />
   <View style={styles.autocompleteContainer}>
     <LocationAutocomplete 
       placeholder="Where to?"
@@ -571,7 +571,7 @@ export default function HomeScreen() {
                   
                   <View style={styles.scheduleRow}>
                     <View style={styles.scheduleItem}>
-                      <Calendar size={20} color="#666" />
+                      <Ionicons name="calendar" size={20} color="#666" />
                       <Text style={styles.scheduleLabel}>Pick-up-Datee</Text>
                     </View>
                     <TouchableOpacity
@@ -589,7 +589,7 @@ export default function HomeScreen() {
 
                   <View style={styles.scheduleRow}>
                     <View style={styles.scheduleItem}>
-                      <Clock size={20} color="#666" />
+                      <Ionicons name="time" size={20} color="#666" />
                       <Text style={styles.scheduleLabel}>Pick-up-Timee</Text>
                     </View>
                     <TouchableOpacity
@@ -655,7 +655,7 @@ export default function HomeScreen() {
 
                   <View style={styles.scheduleRow}>
                     <View style={styles.scheduleItem}>
-                      <DollarSign size={20} color="#666" />
+                      <Ionicons name="cash" size={20} color="#666" />
                       <Text style={styles.scheduleLabel}>Estimated Price</Text>
                     </View>
                     <Text style={styles.priceText}>${calculatePrice(selectedCar)}</Text>

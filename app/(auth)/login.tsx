@@ -1,13 +1,21 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { useAuth } from '@/hooks/useAuth';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+  });
 
   const handleSignIn = async () => {
     console.log('Login attempt started');
@@ -39,6 +47,28 @@ export default function LoginScreen() {
       }
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        await promptAsync();
+      } else {
+        Alert.alert('Coming Soon', 'Google Sign In is currently available on web only.');
+      }
+    } catch (error) {
+      console.error('Google Sign In error:', error);
+      Alert.alert('Error', 'Failed to sign in with Google');
+    }
+  };
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      signInWithGoogle(id_token).catch(error => {
+        Alert.alert('Error', 'Failed to complete Google sign in');
+      });
+    }
+  }, [response]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,12 +105,26 @@ export default function LoginScreen() {
             secureTextEntry
           />
 
-          <TouchableOpacity 
-            style={styles.button} 
+          <TouchableOpacity
+            style={styles.button}
             onPress={handleSignIn}
             onPressIn={() => console.log('Login button pressed')}
           >
             <Text style={styles.buttonText}>Sign In</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleSignIn}
+            disabled={!request}
+          >
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
           <Link href="/register" asChild>
@@ -160,5 +204,35 @@ const styles = StyleSheet.create({
     color: '#D4AF37',
     fontFamily: 'Inter-Regular',
     fontSize: 14,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#444',
+  },
+  dividerText: {
+    color: '#666',
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    marginHorizontal: 16,
+  },
+  googleButton: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  googleButtonText: {
+    color: '#1a1a1a',
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
   },
 });

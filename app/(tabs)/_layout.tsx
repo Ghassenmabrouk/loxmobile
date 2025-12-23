@@ -1,9 +1,18 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Chrome as Home, User, Calendar, MapPin, Navigation, Shield } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function TabLayout() {
-  const { signOut, userData } = useAuth();
+  const { isAuthenticated, isLoading, userData } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   const isAdmin = userData?.role === 'admin';
 
   return (

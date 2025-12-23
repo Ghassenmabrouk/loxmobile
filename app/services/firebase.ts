@@ -14,14 +14,23 @@ const firebaseConfig = {
   measurementId: "G-656H3JD7GM"
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+let app;
+let auth;
+let db;
 
-const auth = Platform.OS === 'web'
-  ? getAuth(app)
-  : initializeAuth(app, {
-      persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-    });
+try {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-const db = getFirestore(app);
+  auth = Platform.OS === 'web'
+    ? getAuth(app)
+    : initializeAuth(app, {
+        persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+      });
+
+  db = getFirestore(app);
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  throw error;
+}
 
 export { app, auth, db };

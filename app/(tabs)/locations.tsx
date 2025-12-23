@@ -1,8 +1,15 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
 import { MapPin } from 'lucide-react-native';
+
+let MapView: any;
+let Marker: any;
+
+if (Platform.OS !== 'web') {
+  MapView = require('react-native-maps').default;
+  Marker = require('react-native-maps').Marker;
+}
 
 const SAVED_LOCATIONS = [
   {
@@ -28,23 +35,29 @@ export default function LocationsScreen() {
         <Text style={styles.title}>Saved Locations</Text>
       </View>
 
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: 40.7484,
-          longitude: -73.9857,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}>
-        {SAVED_LOCATIONS.map((location) => (
-          <Marker
-            key={location.id}
-            coordinate={location.coords}
-            title={location.name}
-            description={location.address}
-          />
-        ))}
-      </MapView>
+      {Platform.OS === 'web' ? (
+        <View style={[styles.map, styles.webMapPlaceholder]}>
+          <Text style={styles.webMapText}>Map view is only available on mobile</Text>
+        </View>
+      ) : (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: 40.7484,
+            longitude: -73.9857,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}>
+          {SAVED_LOCATIONS.map((location) => (
+            <Marker
+              key={location.id}
+              coordinate={location.coords}
+              title={location.name}
+              description={location.address}
+            />
+          ))}
+        </MapView>
+      )}
 
       <View style={styles.locationsList}>
         {SAVED_LOCATIONS.map((location) => (
@@ -85,6 +98,16 @@ const styles = StyleSheet.create({
   },
   map: {
     height: 300,
+  },
+  webMapPlaceholder: {
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webMapText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#666',
   },
   locationsList: {
     padding: 20,

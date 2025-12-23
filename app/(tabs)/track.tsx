@@ -1,10 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import MapViewDirections from 'react-native-maps-directions';
 import { Phone, MessageSquare, Shield, Clock } from 'lucide-react-native';
 import { useLocation } from '@/hooks/useLocation';
+
+let MapView: any;
+let Marker: any;
+let PROVIDER_GOOGLE: any;
+let MapViewDirections: any;
+
+if (Platform.OS !== 'web') {
+  MapView = require('react-native-maps').default;
+  Marker = require('react-native-maps').Marker;
+  PROVIDER_GOOGLE = require('react-native-maps').PROVIDER_GOOGLE;
+  MapViewDirections = require('react-native-maps-directions').default;
+}
 
 const { width, height } = Dimensions.get('window');
 const ASPECT_RATIO = width / height;
@@ -22,14 +32,15 @@ const DESTINATION = {
 };
 
 export default function TrackScreen() {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const { location } = useLocation();
   const [driverLocation, setDriverLocation] = useState(DRIVER_LOCATION);
   const [estimatedTime, setEstimatedTime] = useState('15');
   const GOOGLE_MAPS_API_KEY = 'AIzaSyAH5EZt8YgjuC_3JW292pKQciyZH_1KUVQ';
 
   useEffect(() => {
-    // Simulate driver movement
+    if (Platform.OS === 'web') return;
+
     const interval = setInterval(() => {
       setDriverLocation(prev => ({
         latitude: prev.latitude + 0.0001,
@@ -41,54 +52,57 @@ export default function TrackScreen() {
   }, []);
 
   useEffect(() => {
-    if (mapRef.current) {
-      mapRef.current.fitToCoordinates(
-        [driverLocation, DESTINATION],
-        {
-          edgePadding: { top: 100, right: 100, bottom: 100, left: 100 },
-          animated: true,
-        }
-      );
-    }
+    if (Platform.OS === 'web' || !mapRef.current) return;
+
+    mapRef.current.fitToCoordinates(
+      [driverLocation, DESTINATION],
+      {
+        edgePadding: { top: 100, right: 100, bottom: 100, left: 100 },
+        animated: true,
+      }
+    );
   }, [driverLocation]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          initialRegion={{
-            ...driverLocation,
-            latitudeDelta: LATITUDE_DELTA,
-            longitudeDelta: LONGITUDE_DELTA,
-          }}>
-          {/* Driver Marker */}
-          <Marker coordinate={driverLocation}>
-            <View style={styles.driverMarker}>
-              <View style={styles.driverDot} />
-            </View>
-          </Marker>
+        {Platform.OS === 'web' ? (
+          <View style={[styles.map, styles.webMapPlaceholder]}>
+            <Text style={styles.webMapText}>Map view is only available on mobile</Text>
+          </View>
+        ) : (
+          <MapView
+            ref={mapRef}
+            provider={PROVIDER_GOOGLE}
+            style={styles.map}
+            initialRegion={{
+              ...driverLocation,
+              latitudeDelta: LATITUDE_DELTA,
+              longitudeDelta: LONGITUDE_DELTA,
+            }}>
+            <Marker coordinate={driverLocation}>
+              <View style={styles.driverMarker}>
+                <View style={styles.driverDot} />
+              </View>
+            </Marker>
 
-          {/* Destination Marker */}
-          <Marker coordinate={DESTINATION}>
-            <View style={styles.destinationMarker} />
-          </Marker>
+            <Marker coordinate={DESTINATION}>
+              <View style={styles.destinationMarker} />
+            </Marker>
 
-          {/* Route */}
-          <MapViewDirections
-            origin={driverLocation}
-            destination={DESTINATION}
-            apikey={GOOGLE_MAPS_API_KEY}
-            strokeWidth={3}
-            strokeColor="#D4AF37"
-            optimizeWaypoints={true}
-            onReady={result => {
-              setEstimatedTime(Math.ceil(result.duration).toString());
-            }}
-          />
-        </MapView>
+            <MapViewDirections
+              origin={driverLocation}
+              destination={DESTINATION}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={3}
+              strokeColor="#D4AF37"
+              optimizeWaypoints={true}
+              onReady={result => {
+                setEstimatedTime(Math.ceil(result.duration).toString());
+              }}
+            />
+          </MapView>
+        )}
       </View>
 
       <View style={styles.rideInfo}>
@@ -146,6 +160,16 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  webMapPlaceholder: {
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webMapText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#666',
   },
   driverMarker: {
     backgroundColor: '#D4AF37',

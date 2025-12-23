@@ -48,9 +48,6 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "apiUrl": "http://your-backend-url.com/api"
     }

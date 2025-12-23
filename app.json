@@ -7,6 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
+    "sdkVersion": "54.0.0",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true

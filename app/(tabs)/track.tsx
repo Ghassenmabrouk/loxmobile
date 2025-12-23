@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Phone, MessageSquare, Shield, Clock } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '@/hooks/useLocation';
 
 let MapView: any;

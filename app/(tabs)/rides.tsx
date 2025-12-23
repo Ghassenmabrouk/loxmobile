@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Clock, MapPin } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const RIDES = [
   {

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Clock, ChevronRight, X, DollarSign, Car, Navigation, Calendar } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '@/hooks/useLocation';
 import { useAuth } from '@/hooks/useAuth';
 import { RideService } from '@/app/services/ride';

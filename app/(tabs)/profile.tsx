@@ -1,30 +1,30 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, CreditCard, Bell, Shield, ChevronRight } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 
 const MENU_ITEMS = [
   {
     id: '1',
-    icon: CreditCard,
+    icon: 'card',
     title: 'Payment Methods',
     subtitle: 'Manage your payment options',
   },
   {
     id: '2',
-    icon: Bell,
+    icon: 'notifications',
     title: 'Notifications',
     subtitle: 'Configure your notifications',
   },
   {
     id: '3',
-    icon: Shield,
+    icon: 'shield',
     title: 'Privacy & Security',
     subtitle: 'Manage your account security',
   },
   {
     id: '4',
-    icon: Settings,
+    icon: 'settings',
     title: 'Settings',
     subtitle: 'App preferences and more',
   },
@@ -66,13 +66,13 @@ export default function ProfileScreen() {
           {MENU_ITEMS.map((item) => (
             <TouchableOpacity key={item.id} style={styles.menuItem}>
               <View style={styles.menuItemLeft}>
-                <item.icon size={24} color="#1a1a1a" />
+                <Ionicons name={item.icon as any} size={24} color="#1a1a1a" />
                 <View style={styles.menuItemText}>
                   <Text style={styles.menuItemTitle}>{item.title}</Text>
                   <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
                 </View>
               </View>
-              <ChevronRight size={20} color="#666" />
+              <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
           ))}
         </View>

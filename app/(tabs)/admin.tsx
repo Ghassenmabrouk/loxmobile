@@ -11,7 +11,7 @@ import {
   Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { UserPlus, Car, Users, X } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/app/services/adminService';
 import { FirebaseUser } from '@/app/types/firebase';
 
@@ -104,7 +104,7 @@ export default function AdminScreen() {
           style={styles.addButton}
           onPress={() => setShowAddDriver(true)}
         >
-          <UserPlus size={20} color="#1a1a1a" />
+          <Ionicons name="person-add" size={20} color="#1a1a1a" />
           <Text style={styles.addButtonText}>Add Driver</Text>
         </TouchableOpacity>
       </View>
@@ -117,12 +117,12 @@ export default function AdminScreen() {
         <ScrollView style={styles.content}>
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
-              <Users size={24} color="#D4AF37" />
+              <Ionicons name="people" size={24} color="#D4AF37" />
               <Text style={styles.statNumber}>{drivers.length}</Text>
               <Text style={styles.statLabel}>Total Drivers</Text>
             </View>
             <View style={styles.statCard}>
-              <Car size={24} color="#4CAF50" />
+              <Ionicons name="car" size={24} color="#4CAF50" />
               <Text style={styles.statNumber}>
                 {drivers.filter(d => d.driverStatus === 'online').length}
               </Text>
@@ -172,7 +172,7 @@ export default function AdminScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add New Driver</Text>
               <TouchableOpacity onPress={() => setShowAddDriver(false)}>
-                <X size={24} color="#fff" />
+                <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
 

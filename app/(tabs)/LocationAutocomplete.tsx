@@ -1,7 +1,7 @@
 // components/LocationAutocomplete.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Text, Keyboard } from 'react-native';
-import { MapPin } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 
 interface Suggestion {

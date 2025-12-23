@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from 'expo-router';
-import { Chrome as Home, User, Calendar, MapPin, Navigation, Shield } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function TabLayout() {
@@ -37,21 +37,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="track"
         options={{
           title: 'Track Ride',
-          tabBarIcon: ({ size, color }) => <Navigation size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <Ionicons name="navigate" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="rides"
         options={{
           title: 'My Rides',
-          tabBarIcon: ({ size, color }) => <Calendar size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <Ionicons name="calendar" size={size} color={color} />,
         }}
       />
       {isAdmin && (
@@ -59,7 +59,7 @@ export default function TabLayout() {
           name="admin"
           options={{
             title: 'Admin',
-            tabBarIcon: ({ size, color }) => <Shield size={size} color={color} />,
+            tabBarIcon: ({ size, color }) => <Ionicons name="shield" size={size} color={color} />,
           }}
         />
       )}
@@ -67,7 +67,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <Ionicons name="person" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

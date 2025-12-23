@@ -1,9 +1,10 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, User, Calendar, MapPin, Navigation } from 'lucide-react-native';
+import { Chrome as Home, User, Calendar, MapPin, Navigation, Shield } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function TabLayout() {
-  const { signOut } = useAuth();
+  const { signOut, userData } = useAuth();
+  const isAdmin = userData?.role === 'admin';
 
   return (
     <Tabs
@@ -44,11 +45,32 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => <Calendar size={size} color={color} />,
         }}
       />
+      {isAdmin && (
+        <Tabs.Screen
+          name="admin"
+          options={{
+            title: 'Admin',
+            tabBarIcon: ({ size, color }) => <Shield size={size} color={color} />,
+          }}
+        />
+      )}
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="locations"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="LocationAutocomplete"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

@@ -20,6 +20,10 @@ export interface FirebaseUser {
   vipLevel?: VipLevel;
   vipExpiresAt?: Timestamp | null;
   isBanned?: boolean;
+  licenseNumber?: string;
+  vehicleModel?: string;
+  vehiclePlate?: string;
+  driverStatus?: 'online' | 'offline' | 'busy';
 }
 
 export type TransferStatus = 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';

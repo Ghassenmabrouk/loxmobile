@@ -70,6 +70,9 @@ export default function DriverRideDetailScreen() {
         status: 'driver-arrived',
         arrivedAt: new Date().toISOString()
       });
+
+      await driverService.setDriverStatus(user.uid, 'on-ride');
+
       setIsAtPickup(true);
       Alert.alert('Success', 'Passenger has been notified of your arrival');
     } catch (error) {

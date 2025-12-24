@@ -112,9 +112,6 @@ export default function DriverHomeScreen() {
         'driverDetails.car.class': 'Luxury',
         acceptedAt: new Date().toISOString()
       });
-
-      await driverService.setDriverStatus(user.uid, 'on-ride');
-      setDriverStatus('on-ride');
     } catch (error) {
       console.error('Failed to accept ride:', error);
     }

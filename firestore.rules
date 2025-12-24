@@ -97,12 +97,7 @@ service cloud.firestore {
 
     // Rides Collection - FOR LUXURY CAR BOOKING
     match /rides/{rideId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     resource.data.status == 'pending' ||
-                     ('driverDetails' in resource.data && 'idCard' in resource.data.driverDetails && resource.data.driverDetails.idCard == request.auth.uid) ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && !isUserBanned();
 
       allow create: if isAuthenticated() &&
                        !isUserBanned();
@@ -113,7 +108,10 @@ service cloud.firestore {
                        isAdmin()
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if isAuthenticated() && (
+                       isAdmin() ||
+                       resource.data.userId == request.auth.uid
+                     );
     }
 
     // Events Collection

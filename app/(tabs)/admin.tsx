@@ -17,6 +17,7 @@ import { FirebaseUser } from '@/app/types/firebase';
 import { createMultipleTestRides } from '@/app/services/testDataService';
 import { collection, query, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Ride {
   id: string;
@@ -44,6 +45,7 @@ interface Ride {
 }
 
 export default function AdminScreen() {
+  const { user, userData } = useAuth();
   const [drivers, setDrivers] = useState<Array<FirebaseUser & { id: string }>>([]);
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
@@ -174,10 +176,25 @@ export default function AdminScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('Attempting to delete ride:', rideId);
+              console.log('Current user:', user?.uid);
+              console.log('User role:', userData?.role);
+
               await deleteDoc(doc(db, 'rides', rideId));
-              Alert.alert('Success', 'Ride deleted successfully');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete ride');
+              console.log('Ride deleted successfully');
+            } catch (error: any) {
+              console.error('Failed to delete ride:', error);
+              console.error('Error code:', error.code);
+              console.error('Error message:', error.message);
+
+              let errorMessage = 'Failed to delete ride';
+              if (error.code === 'permission-denied') {
+                errorMessage = 'You do not have permission to delete this ride. Make sure you are logged in as an admin.';
+              } else if (error.message) {
+                errorMessage = error.message;
+              }
+
+              Alert.alert('Error', errorMessage);
             }
           }
         }

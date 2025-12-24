@@ -3,18 +3,26 @@ import { useAuth } from '@/hooks/useAuth';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function Index() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, userData } = useAuth();
 
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#D4AF37" />
+        <ActivityIndicator size="large" color="#4facfe" />
       </View>
     );
   }
 
-  if (isAuthenticated) {
-    return <Redirect href="/(tabs)" />;
+  if (isAuthenticated && userData) {
+    const role = userData.role || 'user';
+
+    if (role === 'driver') {
+      return <Redirect href="/(tabs)/driver-home" />;
+    } else if (role === 'admin') {
+      return <Redirect href="/(tabs)/admin" />;
+    } else {
+      return <Redirect href="/(tabs)/on-time-home" />;
+    }
   }
 
   return <Redirect href="/(auth)/login" />;

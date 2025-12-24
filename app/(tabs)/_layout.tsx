@@ -29,7 +29,7 @@ export default function TabLayout() {
           height: 60,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: '#D4AF37',
+        tabBarActiveTintColor: '#4facfe',
         tabBarInactiveTintColor: '#666666',
         tabBarLabelStyle: {
           fontFamily: 'Inter-Regular',
@@ -37,19 +37,29 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
+        name="on-time-home"
         options={{
           title: 'Home',
           tabBarIcon: ({ size, color }) => <Ionicons name="home" size={size} color={color} />,
+          href: isUser || isAdmin ? '/(tabs)/on-time-home' : null,
         }}
       />
 
       <Tabs.Screen
-        name="rides"
+        name="driver-home"
         options={{
-          title: 'My Rides',
-          tabBarIcon: ({ size, color }) => <Ionicons name="calendar" size={size} color={color} />,
-          href: isUser || isAdmin ? undefined : null,
+          title: 'Home',
+          tabBarIcon: ({ size, color }) => <Ionicons name="home" size={size} color={color} />,
+          href: isDriver ? '/(tabs)/driver-home' : null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="mission-history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ size, color }) => <Ionicons name="time" size={size} color={color} />,
+          href: isUser ? '/(tabs)/mission-history' : null,
         }}
       />
 
@@ -57,8 +67,8 @@ export default function TabLayout() {
         name="driver-schedule"
         options={{
           title: 'Schedule',
-          tabBarIcon: ({ size, color }) => <Ionicons name="calendar-outline" size={size} color={color} />,
-          href: isDriver ? undefined : null,
+          tabBarIcon: ({ size, color }) => <Ionicons name="calendar" size={size} color={color} />,
+          href: isDriver ? '/(tabs)/driver-schedule' : null,
         }}
       />
 
@@ -67,7 +77,7 @@ export default function TabLayout() {
         options={{
           title: 'Admin',
           tabBarIcon: ({ size, color }) => <Ionicons name="shield" size={size} color={color} />,
-          href: isAdmin ? undefined : null,
+          href: isAdmin ? '/(tabs)/admin' : null,
         }}
       />
 
@@ -79,48 +89,17 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="track"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="locations"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="LocationAutocomplete"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="customer-home"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="driver-home"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="driver-ride-detail"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="active-ride-navigation"
-        options={{
-          href: null,
-        }}
-      />
+      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="track" options={{ href: null }} />
+      <Tabs.Screen name="locations" options={{ href: null }} />
+      <Tabs.Screen name="LocationAutocomplete" options={{ href: null }} />
+      <Tabs.Screen name="customer-home" options={{ href: null }} />
+      <Tabs.Screen name="rides" options={{ href: null }} />
+      <Tabs.Screen name="driver-ride-detail" options={{ href: null }} />
+      <Tabs.Screen name="active-ride-navigation" options={{ href: null }} />
+      <Tabs.Screen name="mission-booking" options={{ href: null }} />
+      <Tabs.Screen name="mission-tracking" options={{ href: null }} />
+      <Tabs.Screen name="driver-mission-view" options={{ href: null }} />
     </Tabs>
   );
 }

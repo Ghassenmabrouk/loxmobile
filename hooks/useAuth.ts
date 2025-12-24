@@ -60,7 +60,17 @@ export function useAuth() {
     try {
       const user = await authService.signInWithEmail(email, password);
       console.log('[AUTH] Login successful:', user.email);
-      router.replace('/(tabs)');
+
+      const userDoc = await authService.getUserData(user.uid);
+      const role = userDoc?.role || 'user';
+
+      if (role === 'driver') {
+        router.replace('/(tabs)/driver-home');
+      } else if (role === 'admin') {
+        router.replace('/(tabs)/admin');
+      } else {
+        router.replace('/(tabs)/on-time-home');
+      }
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error);
       console.error('[AUTH] Login error:', errorMessage);
@@ -95,7 +105,17 @@ export function useAuth() {
       );
 
       console.log('[AUTH] Registration successful:', user.email);
-      router.replace('/(tabs)');
+
+      const userDoc = await authService.getUserData(user.uid);
+      const role = userDoc?.role || 'user';
+
+      if (role === 'driver') {
+        router.replace('/(tabs)/driver-home');
+      } else if (role === 'admin') {
+        router.replace('/(tabs)/admin');
+      } else {
+        router.replace('/(tabs)/on-time-home');
+      }
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error);
       console.error('[AUTH] Registration error:', errorMessage);
@@ -113,7 +133,17 @@ export function useAuth() {
     try {
       const user = await authService.signInWithGoogle(idToken);
       console.log('[AUTH] Google login successful:', user.email);
-      router.replace('/(tabs)');
+
+      const userDoc = await authService.getUserData(user.uid);
+      const role = userDoc?.role || 'user';
+
+      if (role === 'driver') {
+        router.replace('/(tabs)/driver-home');
+      } else if (role === 'admin') {
+        router.replace('/(tabs)/admin');
+      } else {
+        router.replace('/(tabs)/on-time-home');
+      }
     } catch (error: any) {
       const errorMessage = getFirebaseErrorMessage(error);
       console.error('[AUTH] Google login error:', errorMessage);

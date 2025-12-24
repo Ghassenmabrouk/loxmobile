@@ -15,11 +15,40 @@ import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/app/services/adminService';
 import { FirebaseUser } from '@/app/types/firebase';
 import { createMultipleTestRides } from '@/app/services/testDataService';
+import { collection, query, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/app/services/firebase';
+
+interface Ride {
+  id: string;
+  name: string;
+  userId: string;
+  pickupLocation: {
+    coordinates: string;
+    locationName: string;
+  };
+  destinations: Array<{
+    location: string;
+    destinationName: string;
+  }>;
+  pickupDate: string;
+  pickupTime: string;
+  passengers: number;
+  carMake: string;
+  estimatedPrice: string;
+  status: string;
+  contact?: string;
+  driverDetails?: {
+    idCard: string;
+    name: string;
+  };
+}
 
 export default function AdminScreen() {
   const [drivers, setDrivers] = useState<Array<FirebaseUser & { id: string }>>([]);
+  const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddDriver, setShowAddDriver] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<'drivers' | 'rides'>('drivers');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +61,30 @@ export default function AdminScreen() {
 
   useEffect(() => {
     loadDrivers();
+  }, []);
+
+  useEffect(() => {
+    const ridesRef = collection(db, 'rides');
+    const ridesQuery = query(ridesRef);
+
+    const unsubscribe = onSnapshot(ridesQuery, (snapshot) => {
+      const ridesList: Ride[] = [];
+      snapshot.forEach((doc) => {
+        ridesList.push({
+          id: doc.id,
+          ...doc.data()
+        } as Ride);
+      });
+
+      ridesList.sort((a, b) => {
+        const statusOrder = { pending: 0, accepted: 1, 'in-progress': 2, completed: 3, cancelled: 4 };
+        return (statusOrder[a.status as keyof typeof statusOrder] || 99) - (statusOrder[b.status as keyof typeof statusOrder] || 99);
+      });
+
+      setRides(ridesList);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadDrivers = async () => {
@@ -110,6 +163,45 @@ export default function AdminScreen() {
     }
   };
 
+  const handleDeleteRide = async (rideId: string) => {
+    Alert.alert(
+      'Delete Ride',
+      'Are you sure you want to delete this ride?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'rides', rideId));
+              Alert.alert('Success', 'Ride deleted successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete ride');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return '#FFA726';
+      case 'accepted':
+        return '#42A5F5';
+      case 'in-progress':
+        return '#66BB6A';
+      case 'completed':
+        return '#4CAF50';
+      case 'cancelled':
+        return '#EF5350';
+      default:
+        return '#999';
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -132,55 +224,174 @@ export default function AdminScreen() {
         </View>
       </View>
 
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'drivers' && styles.tabActive]}
+          onPress={() => setSelectedTab('drivers')}
+        >
+          <Ionicons name="people" size={20} color={selectedTab === 'drivers' ? '#D4AF37' : '#666'} />
+          <Text style={[styles.tabText, selectedTab === 'drivers' && styles.tabTextActive]}>Drivers</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'rides' && styles.tabActive]}
+          onPress={() => setSelectedTab('rides')}
+        >
+          <Ionicons name="car" size={20} color={selectedTab === 'rides' ? '#D4AF37' : '#666'} />
+          <Text style={[styles.tabText, selectedTab === 'rides' && styles.tabTextActive]}>Rides</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading && !showAddDriver ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#D4AF37" />
         </View>
       ) : (
         <ScrollView style={styles.content}>
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Ionicons name="people" size={24} color="#D4AF37" />
-              <Text style={styles.statNumber}>{drivers.length}</Text>
-              <Text style={styles.statLabel}>Total Drivers</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Ionicons name="car" size={24} color="#4CAF50" />
-              <Text style={styles.statNumber}>
-                {drivers.filter(d => d.driverStatus === 'online').length}
-              </Text>
-              <Text style={styles.statLabel}>Online</Text>
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Drivers</Text>
-          {drivers.map((driver) => (
-            <View key={driver.id} style={styles.driverCard}>
-              <View style={styles.driverInfo}>
-                <Text style={styles.driverName}>
-                  {driver.firstName} {driver.lastName}
-                </Text>
-                <Text style={styles.driverDetail}>{driver.email}</Text>
-                <Text style={styles.driverDetail}>{driver.phoneNumber}</Text>
-                {driver.vehicleModel && (
-                  <Text style={styles.driverDetail}>
-                    {driver.vehicleModel} - {driver.vehiclePlate}
+          {selectedTab === 'drivers' ? (
+            <>
+              <View style={styles.statsContainer}>
+                <View style={styles.statCard}>
+                  <Ionicons name="people" size={24} color="#D4AF37" />
+                  <Text style={styles.statNumber}>{drivers.length}</Text>
+                  <Text style={styles.statLabel}>Total Drivers</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="car" size={24} color="#4CAF50" />
+                  <Text style={styles.statNumber}>
+                    {drivers.filter(d => d.driverStatus === 'online').length}
                   </Text>
-                )}
+                  <Text style={styles.statLabel}>Online</Text>
+                </View>
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.statusButton,
-                  driver.driverStatus === 'online' && styles.statusOnline
-                ]}
-                onPress={() => handleStatusToggle(driver.id, driver.driverStatus || 'offline')}
-              >
-                <Text style={styles.statusText}>
-                  {driver.driverStatus === 'online' ? 'Online' : 'Offline'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+
+              <Text style={styles.sectionTitle}>Drivers</Text>
+              {drivers.map((driver) => (
+                <View key={driver.id} style={styles.driverCard}>
+                  <View style={styles.driverInfo}>
+                    <Text style={styles.driverName}>
+                      {driver.firstName} {driver.lastName}
+                    </Text>
+                    <Text style={styles.driverDetail}>{driver.email}</Text>
+                    <Text style={styles.driverDetail}>{driver.phoneNumber}</Text>
+                    {driver.vehicleModel && (
+                      <Text style={styles.driverDetail}>
+                        {driver.vehicleModel} - {driver.vehiclePlate}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.statusButton,
+                      driver.driverStatus === 'online' && styles.statusOnline
+                    ]}
+                    onPress={() => handleStatusToggle(driver.id, driver.driverStatus || 'offline')}
+                  >
+                    <Text style={styles.statusText}>
+                      {driver.driverStatus === 'online' ? 'Online' : 'Offline'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </>
+          ) : (
+            <>
+              <View style={styles.statsContainer}>
+                <View style={styles.statCard}>
+                  <Ionicons name="time" size={24} color="#FFA726" />
+                  <Text style={styles.statNumber}>
+                    {rides.filter(r => r.status === 'pending').length}
+                  </Text>
+                  <Text style={styles.statLabel}>Pending</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="checkmark-circle" size={24} color="#42A5F5" />
+                  <Text style={styles.statNumber}>
+                    {rides.filter(r => r.status === 'accepted').length}
+                  </Text>
+                  <Text style={styles.statLabel}>Accepted</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Ionicons name="car" size={24} color="#66BB6A" />
+                  <Text style={styles.statNumber}>
+                    {rides.filter(r => r.status === 'in-progress').length}
+                  </Text>
+                  <Text style={styles.statLabel}>Active</Text>
+                </View>
+              </View>
+
+              <Text style={styles.sectionTitle}>All Rides</Text>
+              {rides.length > 0 ? (
+                rides.map((ride) => (
+                  <View key={ride.id} style={styles.rideCard}>
+                    <View style={styles.rideHeader}>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ride.status) }]}>
+                        <Text style={styles.statusBadgeText}>
+                          {ride.status.toUpperCase()}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => handleDeleteRide(ride.id)}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#EF5350" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.rideBody}>
+                      <View style={styles.rideRow}>
+                        <Ionicons name="person" size={16} color="#D4AF37" />
+                        <Text style={styles.rideText}>{ride.name}</Text>
+                        <Text style={styles.rideTextSecondary}>({ride.passengers} pax)</Text>
+                      </View>
+
+                      {ride.driverDetails && (
+                        <View style={styles.rideRow}>
+                          <Ionicons name="car" size={16} color="#4CAF50" />
+                          <Text style={styles.rideText}>Driver: {ride.driverDetails.name}</Text>
+                        </View>
+                      )}
+
+                      <View style={styles.locationSection}>
+                        <View style={styles.locationRow}>
+                          <View style={styles.locationDot} />
+                          <Text style={styles.locationText} numberOfLines={1}>
+                            {ride.pickupLocation?.locationName || 'Unknown'}
+                          </Text>
+                        </View>
+                        <View style={styles.locationLine} />
+                        <View style={styles.locationRow}>
+                          <View style={[styles.locationDot, styles.locationDotDestination]} />
+                          <Text style={styles.locationText} numberOfLines={1}>
+                            {ride.destinations?.[0]?.destinationName || 'Unknown'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.rideDetailsRow}>
+                        <View style={styles.detailItem}>
+                          <Ionicons name="calendar-outline" size={14} color="#666" />
+                          <Text style={styles.detailText}>{ride.pickupDate}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                          <Ionicons name="time-outline" size={14} color="#666" />
+                          <Text style={styles.detailText}>{ride.pickupTime}</Text>
+                        </View>
+                        <View style={styles.detailItem}>
+                          <Ionicons name="cash-outline" size={14} color="#666" />
+                          <Text style={styles.detailText}>${ride.estimatedPrice}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="car-outline" size={64} color="#666" />
+                  <Text style={styles.emptyText}>No rides yet</Text>
+                </View>
+              )}
+            </>
+          )}
         </ScrollView>
       )}
 
@@ -345,6 +556,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1a1a1a',
   },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#2a2a2a',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+    borderRadius: 8,
+  },
+  tabActive: {
+    backgroundColor: '#1a1a1a',
+  },
+  tabText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#666',
+  },
+  tabTextActive: {
+    color: '#D4AF37',
+  },
   content: {
     flex: 1,
     padding: 20,
@@ -476,5 +715,108 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     fontFamily: 'Inter-SemiBold',
     fontSize: 16,
+  },
+  rideCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  rideHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statusBadgeText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 11,
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  rideBody: {
+    padding: 16,
+  },
+  rideRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  rideText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#fff',
+  },
+  rideTextSecondary: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#999',
+  },
+  locationSection: {
+    marginVertical: 12,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#4CAF50',
+    marginRight: 10,
+  },
+  locationDotDestination: {
+    backgroundColor: '#D4AF37',
+  },
+  locationLine: {
+    width: 2,
+    height: 16,
+    backgroundColor: '#444',
+    marginLeft: 4,
+    marginVertical: 2,
+  },
+  locationText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#ccc',
+    flex: 1,
+  },
+  rideDetailsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  detailText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: '#999',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 16,
   },
 });

@@ -43,6 +43,14 @@ export const driverService = {
     });
   },
 
+  async setDriverStatus(driverId: string, status: 'online' | 'offline' | 'on-ride'): Promise<void> {
+    const docRef = doc(db, 'users', driverId);
+    await updateDoc(docRef, {
+      driverStatus: status,
+      updatedAt: serverTimestamp()
+    });
+  },
+
   async updateDriverRating(driverId: string, newRating: number): Promise<void> {
     const docRef = doc(db, 'drivers', driverId);
     const driverSnap = await getDoc(docRef);

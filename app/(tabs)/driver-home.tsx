@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
+import { driverService } from '@/app/services/driverService';
+import { DriverStatus } from '@/app/types/firebase';
 
 interface RideRequest {
   id: string;
@@ -31,14 +33,20 @@ interface RideRequest {
 }
 
 export default function DriverHomeScreen() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const router = useRouter();
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
   const [acceptedRides, setAcceptedRides] = useState<RideRequest[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const [driverStatus, setDriverStatus] = useState<DriverStatus>('offline');
 
   const MOCK_DISTANCES = [0.8, 1.2, 2.5, 3.1, 4.5, 1.8, 2.9];
+
+  useEffect(() => {
+    if (userData?.driverStatus) {
+      setDriverStatus(userData.driverStatus as DriverStatus);
+    }
+  }, [userData]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -104,8 +112,49 @@ export default function DriverHomeScreen() {
         'driverDetails.car.class': 'Luxury',
         acceptedAt: new Date().toISOString()
       });
+
+      await driverService.setDriverStatus(user.uid, 'on-ride');
+      setDriverStatus('on-ride');
     } catch (error) {
       console.error('Failed to accept ride:', error);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!user?.uid || driverStatus === 'on-ride') return;
+
+    try {
+      const newStatus: DriverStatus = driverStatus === 'online' ? 'offline' : 'online';
+      await driverService.setDriverStatus(user.uid, newStatus);
+      setDriverStatus(newStatus);
+    } catch (error) {
+      console.error('Failed to update driver status:', error);
+    }
+  };
+
+  const getStatusConfig = () => {
+    switch (driverStatus) {
+      case 'online':
+        return {
+          label: 'Online',
+          color: '#4CAF50',
+          bgColor: 'rgba(76, 175, 80, 0.2)',
+          icon: 'checkmark-circle' as const,
+        };
+      case 'offline':
+        return {
+          label: 'Offline',
+          color: '#999',
+          bgColor: 'rgba(255, 255, 255, 0.1)',
+          icon: 'moon' as const,
+        };
+      case 'on-ride':
+        return {
+          label: 'On Ride',
+          color: '#FF9800',
+          bgColor: 'rgba(255, 152, 0, 0.2)',
+          icon: 'car' as const,
+        };
     }
   };
 
@@ -144,12 +193,16 @@ export default function DriverHomeScreen() {
               </View>
             </View>
             <TouchableOpacity
-              style={[styles.statusButton, isOnline && styles.statusButtonOnline]}
-              onPress={() => setIsOnline(!isOnline)}
+              style={[
+                styles.statusButton,
+                { backgroundColor: getStatusConfig().bgColor }
+              ]}
+              onPress={handleToggleStatus}
+              disabled={driverStatus === 'on-ride'}
             >
-              <View style={[styles.statusDot, isOnline && styles.statusDotOnline]} />
-              <Text style={[styles.statusText, isOnline && styles.statusTextOnline]}>
-                {isOnline ? 'Online' : 'Offline'}
+              <Ionicons name={getStatusConfig().icon} size={16} color={getStatusConfig().color} />
+              <Text style={[styles.statusText, { color: getStatusConfig().color }]}>
+                {getStatusConfig().label}
               </Text>
             </TouchableOpacity>
           </View>
@@ -173,12 +226,36 @@ export default function DriverHomeScreen() {
           </View>
         </View>
 
+        {driverStatus === 'on-ride' && acceptedRides.length > 0 && (
+          <View style={styles.currentRideContainer}>
+            <LinearGradient
+              colors={['#FF9800', '#F57C00']}
+              style={styles.currentRideGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="car" size={32} color="#FFF" />
+              <View style={styles.currentRideInfo}>
+                <Text style={styles.currentRideTitle}>Active Ride</Text>
+                <Text style={styles.currentRideSubtitle}>Taking passenger to destination</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.viewRideButton}
+                onPress={() => router.push(`/(tabs)/driver-ride-detail?rideId=${acceptedRides[0].id}`)}
+              >
+                <Text style={styles.viewRideButtonText}>View</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFF" />
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        )}
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Ride Requests</Text>
           <Text style={styles.sectionSubtitle}>Sorted by distance</Text>
         </View>
 
-        {isOnline ? (
+        {driverStatus === 'online' ? (
           rideRequests.length > 0 ? (
             rideRequests.map((ride) => (
               <View key={ride.id} style={styles.rideCard}>
@@ -268,11 +345,17 @@ export default function DriverHomeScreen() {
               <Text style={styles.emptyText}>New requests will appear here</Text>
             </View>
           )
-        ) : (
+        ) : driverStatus === 'offline' ? (
           <View style={styles.offlineState}>
             <Ionicons name="moon" size={64} color="#CCC" />
             <Text style={styles.offlineTitle}>You're offline</Text>
             <Text style={styles.offlineText}>Go online to see ride requests</Text>
+          </View>
+        ) : (
+          <View style={styles.offlineState}>
+            <Ionicons name="car" size={64} color="#FF9800" />
+            <Text style={styles.offlineTitle}>On a ride</Text>
+            <Text style={styles.offlineText}>Complete current ride to see new requests</Text>
           </View>
         )}
       </ScrollView>
@@ -330,31 +413,60 @@ const styles = StyleSheet.create({
   statusButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 20,
     gap: 6,
-  },
-  statusButtonOnline: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#999',
-  },
-  statusDotOnline: {
-    backgroundColor: '#4CAF50',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   statusText: {
     fontSize: 14,
-    color: '#999',
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  statusTextOnline: {
-    color: '#4CAF50',
+  currentRideContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  currentRideGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 16,
+  },
+  currentRideInfo: {
+    flex: 1,
+  },
+  currentRideTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  currentRideSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  viewRideButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  viewRideButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFF',
   },
   statsContainer: {
     flexDirection: 'row',

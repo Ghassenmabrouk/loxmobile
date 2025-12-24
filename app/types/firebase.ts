@@ -78,6 +78,8 @@ export interface FirebaseTransfer {
   sosTimestamp?: Timestamp;
 }
 
+export type DriverStatus = 'online' | 'offline' | 'on-ride';
+
 export interface FirebaseDriver {
   name: string;
   email: string;
@@ -92,6 +94,7 @@ export interface FirebaseDriver {
   carType: CarType;
   photo?: string;
   isAvailable: boolean;
+  status: DriverStatus;
   currentLocation?: LocationCoords;
   createdAt: Timestamp;
   updatedAt: Timestamp;

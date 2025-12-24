@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
+import { driverService } from '@/app/services/driverService';
 
 interface RideDetail {
   id: string;
@@ -94,7 +95,7 @@ export default function DriverRideDetailScreen() {
   };
 
   const handleCompleteRide = async () => {
-    if (!ride) return;
+    if (!ride || !user?.uid) return;
 
     Alert.alert(
       'Complete Ride',
@@ -110,7 +111,10 @@ export default function DriverRideDetailScreen() {
                 status: 'completed',
                 completedAt: new Date().toISOString()
               });
-              Alert.alert('Success', 'Ride completed!', [
+
+              await driverService.setDriverStatus(user.uid, 'online');
+
+              Alert.alert('Success', 'Ride completed! You are now online and available for new rides.', [
                 { text: 'OK', onPress: () => router.back() }
               ]);
             } catch (error) {

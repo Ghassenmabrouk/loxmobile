@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, UserProfile, UserSettings, SavedLocation } from '@/app/services/profileService';
+import PaymentMethodsModal from '@/components/PaymentMethodsModal';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -29,6 +30,7 @@ export default function ProfileScreen() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSavedLocations, setShowSavedLocations] = useState(false);
   const [showAddLocation, setShowAddLocation] = useState(false);
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
 
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
@@ -276,7 +278,7 @@ export default function ProfileScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => setShowPaymentMethods(true)}>
             <LinearGradient
               colors={['#FFFFFF', '#F8F8F8']}
               style={styles.menuItemGradient}
@@ -562,6 +564,15 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Payment Methods Modal */}
+      {user?.uid && (
+        <PaymentMethodsModal
+          visible={showPaymentMethods}
+          userId={user.uid}
+          onClose={() => setShowPaymentMethods(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }

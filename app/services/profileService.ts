@@ -1,17 +1,4 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from './firebase';
+import { supabase } from './supabase';
 
 export interface UserProfile {
   id: string;
@@ -23,8 +10,8 @@ export interface UserProfile {
   vip_status: boolean;
   total_rides: number;
   rating: number;
-  created_at: any;
-  updated_at: any;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserSettings {
@@ -37,8 +24,8 @@ export interface UserSettings {
   promotional_offers: boolean;
   language: string;
   currency: string;
-  created_at: any;
-  updated_at: any;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SavedLocation {
@@ -49,29 +36,31 @@ export interface SavedLocation {
   latitude?: number;
   longitude?: number;
   is_favorite: boolean;
-  created_at: any;
-  updated_at: any;
+  created_at: string;
+  updated_at: string;
 }
 
 export class ProfileService {
   static async getProfile(userId: string): Promise<UserProfile | null> {
-    try {
-      const docRef = doc(db, 'user_profiles', userId);
-      const docSnap = await getDoc(docRef);
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as UserProfile;
-      }
-      return null;
-    } catch (error) {
+    if (error) {
       console.error('Error fetching profile:', error);
       return null;
     }
+
+    return data;
   }
 
   static async createProfile(userId: string, email: string, fullName: string): Promise<UserProfile | null> {
-    try {
-      const profileData = {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .insert({
+        id: userId,
         email,
         full_name: fullName,
         phone_number: '',
@@ -79,57 +68,55 @@ export class ProfileService {
         vip_status: false,
         total_rides: 0,
         rating: 5.0,
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      };
+      })
+      .select()
+      .single();
 
-      await setDoc(doc(db, 'user_profiles', userId), profileData);
-      await this.createDefaultSettings(userId);
-
-      return { id: userId, ...profileData, created_at: new Date(), updated_at: new Date() };
-    } catch (error) {
+    if (error) {
       console.error('Error creating profile:', error);
       return null;
     }
+
+    await this.createDefaultSettings(userId);
+
+    return data;
   }
 
   static async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
-    try {
-      const docRef = doc(db, 'user_profiles', userId);
-      await updateDoc(docRef, {
-        ...updates,
-        updated_at: serverTimestamp(),
-      });
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
 
-      const updatedDoc = await getDoc(docRef);
-      if (updatedDoc.exists()) {
-        return { id: updatedDoc.id, ...updatedDoc.data() } as UserProfile;
-      }
-      return null;
-    } catch (error) {
+    if (error) {
       console.error('Error updating profile:', error);
       return null;
     }
+
+    return data;
   }
 
   static async getSettings(userId: string): Promise<UserSettings | null> {
-    try {
-      const docRef = doc(db, 'user_settings', userId);
-      const docSnap = await getDoc(docRef);
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as UserSettings;
-      }
-      return null;
-    } catch (error) {
+    if (error) {
       console.error('Error fetching settings:', error);
       return null;
     }
+
+    return data;
   }
 
   static async createDefaultSettings(userId: string): Promise<UserSettings | null> {
-    try {
-      const settingsData = {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .insert({
         user_id: userId,
         push_notifications: true,
         email_notifications: true,
@@ -138,112 +125,101 @@ export class ProfileService {
         promotional_offers: false,
         language: 'en',
         currency: 'USD',
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      };
+      })
+      .select()
+      .single();
 
-      await setDoc(doc(db, 'user_settings', userId), settingsData);
-
-      return { id: userId, ...settingsData, created_at: new Date(), updated_at: new Date() };
-    } catch (error) {
+    if (error) {
       console.error('Error creating settings:', error);
       return null;
     }
+
+    return data;
   }
 
   static async updateSettings(userId: string, updates: Partial<UserSettings>): Promise<UserSettings | null> {
-    try {
-      const docRef = doc(db, 'user_settings', userId);
-      await updateDoc(docRef, {
-        ...updates,
-        updated_at: serverTimestamp(),
-      });
+    const { data, error } = await supabase
+      .from('user_settings')
+      .update(updates)
+      .eq('user_id', userId)
+      .select()
+      .single();
 
-      const updatedDoc = await getDoc(docRef);
-      if (updatedDoc.exists()) {
-        return { id: updatedDoc.id, ...updatedDoc.data() } as UserSettings;
-      }
-      return null;
-    } catch (error) {
+    if (error) {
       console.error('Error updating settings:', error);
       return null;
     }
+
+    return data;
   }
 
   static async getSavedLocations(userId: string): Promise<SavedLocation[]> {
-    try {
-      const q = query(
-        collection(db, 'saved_locations'),
-        where('user_id', '==', userId),
-        orderBy('is_favorite', 'desc'),
-        orderBy('created_at', 'desc')
-      );
+    const { data, error } = await supabase
+      .from('saved_locations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('is_favorite', { ascending: false })
+      .order('created_at', { ascending: false });
 
-      const querySnapshot = await getDocs(q);
-      const locations: SavedLocation[] = [];
-
-      querySnapshot.forEach((doc) => {
-        locations.push({ id: doc.id, ...doc.data() } as SavedLocation);
-      });
-
-      return locations;
-    } catch (error) {
+    if (error) {
       console.error('Error fetching saved locations:', error);
       return [];
     }
+
+    return data || [];
   }
 
   static async addSavedLocation(
     userId: string,
     location: Omit<SavedLocation, 'id' | 'user_id' | 'created_at' | 'updated_at'>
   ): Promise<SavedLocation | null> {
-    try {
-      const locationData = {
+    const { data, error } = await supabase
+      .from('saved_locations')
+      .insert({
         user_id: userId,
         ...location,
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      };
+      })
+      .select()
+      .single();
 
-      const docRef = doc(collection(db, 'saved_locations'));
-      await setDoc(docRef, locationData);
-
-      return { id: docRef.id, ...locationData, created_at: new Date(), updated_at: new Date() };
-    } catch (error) {
+    if (error) {
       console.error('Error adding saved location:', error);
       return null;
     }
+
+    return data;
   }
 
   static async updateSavedLocation(
     locationId: string,
     updates: Partial<SavedLocation>
   ): Promise<SavedLocation | null> {
-    try {
-      const docRef = doc(db, 'saved_locations', locationId);
-      await updateDoc(docRef, {
-        ...updates,
-        updated_at: serverTimestamp(),
-      });
+    const { data, error } = await supabase
+      .from('saved_locations')
+      .update(updates)
+      .eq('id', locationId)
+      .select()
+      .single();
 
-      const updatedDoc = await getDoc(docRef);
-      if (updatedDoc.exists()) {
-        return { id: updatedDoc.id, ...updatedDoc.data() } as SavedLocation;
-      }
-      return null;
-    } catch (error) {
+    if (error) {
       console.error('Error updating saved location:', error);
       return null;
     }
+
+    return data;
   }
 
   static async deleteSavedLocation(locationId: string): Promise<boolean> {
-    try {
-      await deleteDoc(doc(db, 'saved_locations', locationId));
-      return true;
-    } catch (error) {
+    const { error } = await supabase
+      .from('saved_locations')
+      .delete()
+      .eq('id', locationId);
+
+    if (error) {
       console.error('Error deleting saved location:', error);
       return false;
     }
+
+    return true;
   }
 }

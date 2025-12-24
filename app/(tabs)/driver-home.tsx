@@ -238,7 +238,7 @@ export default function DriverHomeScreen() {
               </View>
               <TouchableOpacity
                 style={styles.viewRideButton}
-                onPress={() => router.push(`/(tabs)/driver-ride-detail?rideId=${acceptedRides[0].id}`)}
+                onPress={() => router.push(`/(tabs)/active-ride-navigation?rideId=${acceptedRides[0].id}`)}
               >
                 <Text style={styles.viewRideButtonText}>View</Text>
                 <Ionicons name="arrow-forward" size={18} color="#FFF" />

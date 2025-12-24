@@ -115,6 +115,12 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="active-ride-navigation"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

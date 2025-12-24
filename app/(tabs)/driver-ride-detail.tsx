@@ -94,6 +94,8 @@ export default function DriverRideDetailScreen() {
         startedAt: new Date().toISOString()
       });
       setRideStarted(true);
+
+      router.push(`/(tabs)/active-ride-navigation?rideId=${ride.id}`);
     } catch (error) {
       console.error('Failed to start ride:', error);
       Alert.alert('Error', 'Failed to start ride');

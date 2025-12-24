@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform }
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, MapPin, Flag, User, Phone, Clock, Navigation } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NavigationMap } from '@/components/NavigationMap';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
@@ -32,14 +32,20 @@ export default function ActiveRideNavigation() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRideDetails();
+    if (rideId) {
+      loadRideDetails();
+    } else {
+      setLoading(false);
+    }
   }, [rideId]);
 
   const loadRideDetails = async () => {
     try {
+      console.log('Loading ride:', rideId);
       const rideDoc = await getDoc(doc(db, 'rides', rideId));
       if (rideDoc.exists()) {
         const data = rideDoc.data();
+        console.log('Ride data:', data);
         setRide({
           id: rideDoc.id,
           userId: data.userId,
@@ -51,10 +57,17 @@ export default function ActiveRideNavigation() {
           status: data.status,
           startedAt: data.startedAt,
         });
+      } else {
+        console.log('Ride not found');
+        Alert.alert('Error', 'Ride not found', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
       }
     } catch (error) {
       console.error('Error loading ride:', error);
-      Alert.alert('Error', 'Failed to load ride details');
+      Alert.alert('Error', 'Failed to load ride details', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -99,13 +112,47 @@ export default function ActiveRideNavigation() {
     );
   };
 
-  if (loading || !ride) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
+
+  if (!ride) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Ride not found</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const getCoordinates = () => {
+    try {
+      const destCoords = ride.destinations[0].location.split(',');
+      const pickupCoords = ride.pickupLocation.coordinates.split(',');
+
+      return {
+        destination: {
+          latitude: parseFloat(destCoords[0]),
+          longitude: parseFloat(destCoords[1]),
+        },
+        pickup: {
+          latitude: parseFloat(pickupCoords[0]),
+          longitude: parseFloat(pickupCoords[1]),
+        }
+      };
+    } catch (error) {
+      console.error('Error parsing coordinates:', error);
+      return null;
+    }
+  };
+
+  const coords = getCoordinates();
 
   return (
     <View style={styles.container}>
@@ -116,10 +163,10 @@ export default function ActiveRideNavigation() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <X size={24} color="#fff" />
+            <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Navigation size={20} color="#D4AF37" />
+            <Ionicons name="navigate" size={20} color="#D4AF37" />
             <Text style={styles.headerTitle}>Active Navigation</Text>
           </View>
           <View style={styles.headerRight} />
@@ -127,16 +174,16 @@ export default function ActiveRideNavigation() {
 
         {/* Map */}
         <View style={styles.mapContainer}>
-          <NavigationMap
-            destination={{
-              latitude: parseFloat(ride.destinations[0].location.split(',')[0]),
-              longitude: parseFloat(ride.destinations[0].location.split(',')[1]),
-            }}
-            pickupLocation={{
-              latitude: parseFloat(ride.pickupLocation.coordinates.split(',')[0]),
-              longitude: parseFloat(ride.pickupLocation.coordinates.split(',')[1]),
-            }}
-          />
+          {coords ? (
+            <NavigationMap
+              destination={coords.destination}
+              pickupLocation={coords.pickup}
+            />
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <Text style={styles.mapPlaceholderText}>Map unavailable</Text>
+            </View>
+          )}
         </View>
 
         {/* Ride Information Panel */}
@@ -144,7 +191,7 @@ export default function ActiveRideNavigation() {
           {/* Passenger Info */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <User size={18} color="#D4AF37" />
+              <Ionicons name="person" size={18} color="#D4AF37" />
               <Text style={styles.sectionTitle}>Passenger</Text>
             </View>
             <View style={styles.infoRow}>
@@ -160,7 +207,7 @@ export default function ActiveRideNavigation() {
           {/* Trip Details */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MapPin size={18} color="#D4AF37" />
+              <Ionicons name="location" size={18} color="#D4AF37" />
               <Text style={styles.sectionTitle}>Trip Details</Text>
             </View>
             <View style={styles.locationRow}>
@@ -172,7 +219,7 @@ export default function ActiveRideNavigation() {
             </View>
             <View style={styles.locationConnector} />
             <View style={styles.locationRow}>
-              <Flag size={16} color="#D4AF37" />
+              <Ionicons name="flag" size={16} color="#D4AF37" />
               <View style={styles.locationInfo}>
                 <Text style={styles.locationLabel}>Destination</Text>
                 <Text style={styles.locationText}>{ride.destinations[0].destinationName}</Text>
@@ -192,7 +239,7 @@ export default function ActiveRideNavigation() {
           {ride.startedAt && (
             <View style={styles.section}>
               <View style={styles.infoRow}>
-                <Clock size={16} color="#D4AF37" />
+                <Ionicons name="time" size={16} color="#D4AF37" />
                 <Text style={styles.timeText}>
                   Started at {new Date(ride.startedAt).toLocaleTimeString()}
                 </Text>
@@ -209,7 +256,7 @@ export default function ActiveRideNavigation() {
             <LinearGradient
               colors={['#D4AF37', '#C4A137']}
               style={styles.endRideGradient}>
-              <Flag size={20} color="#000" />
+              <Ionicons name="flag" size={20} color="#000" />
               <Text style={styles.endRideText}>End Ride</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -232,10 +279,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 20,
   },
   loadingText: {
     color: '#fff',
     fontSize: 16,
+  },
+  backButton: {
+    backgroundColor: '#D4AF37',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  mapPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+  },
+  mapPlaceholderText: {
+    color: '#666',
+    fontSize: 14,
   },
   header: {
     flexDirection: 'row',

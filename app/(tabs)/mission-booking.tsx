@@ -367,7 +367,7 @@ export default function MissionBookingScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
+        colors={['#000000', '#1a1a1a', '#0d0d0d']}
         style={styles.gradient}
       >
         <View style={styles.header}>
@@ -458,11 +458,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   stepDotCompleted: {
-    backgroundColor: '#4facfe',
+    backgroundColor: '#D4AF37',
     width: 24,
   },
   stepDotActive: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#D4AF37',
     width: 32,
   },
   scrollContent: {
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   primaryButton: {
-    backgroundColor: '#4facfe',
+    backgroundColor: '#D4AF37',
     borderRadius: 12,
     padding: 18,
     alignItems: 'center',
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#000000',
     letterSpacing: 1,
   },
   secondaryButton: {
@@ -593,8 +593,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   documentTypeButtonSelected: {
-    backgroundColor: '#4facfe',
-    borderColor: '#4facfe',
+    backgroundColor: '#D4AF37',
+    borderColor: '#D4AF37',
   },
   documentTypeText: {
     fontSize: 14,
@@ -602,11 +602,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   documentTypeTextSelected: {
-    color: '#ffffff',
+    color: '#000000',
     fontWeight: '700',
   },
   infoBox: {
-    backgroundColor: 'rgba(79, 172, 254, 0.2)',
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     borderWidth: 1,
-    borderColor: 'rgba(79, 172, 254, 0.3)',
+    borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   infoIcon: {
     fontSize: 20,

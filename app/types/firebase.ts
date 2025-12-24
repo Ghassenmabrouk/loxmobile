@@ -1,24 +1,29 @@
 import { Timestamp } from 'firebase/firestore';
 
 export type VipLevel = 'none' | 'silver' | 'gold' | 'diamond';
-export type UserRole = 'user' | 'admin' | 'driver';
+export type UserRole = 'client' | 'admin' | 'driver';
 export type Gender = 'male' | 'female' | 'other';
+export type SecurityClearance = 'standard' | 'discreet' | 'confidential' | 'critical';
 
 export interface FirebaseUser {
+  userId: string;
   email: string;
   role: UserRole;
+  anonymousCode: string;
+  status: 'active' | 'inactive' | 'suspended';
+  phoneNumber: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   firstName?: string;
   lastName?: string;
   username?: string;
   name?: string;
-  phoneNumber?: string;
   gender?: Gender;
   photo?: string;
   vipAccess?: VipLevel;
   vipLevel?: VipLevel;
   vipExpiresAt?: Timestamp | null;
+  securityClearance?: SecurityClearance;
   isBanned?: boolean;
   licenseNumber?: string;
   vehicleModel?: string;

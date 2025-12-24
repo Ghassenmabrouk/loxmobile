@@ -35,6 +35,8 @@ export function useAuth() {
         setUser(firebaseUser);
         setIsAuthenticated(true);
 
+        await authService.migrateUserDocument(firebaseUser.uid);
+
         const userDoc = await authService.getUserData(firebaseUser.uid);
         setUserData(userDoc);
 
@@ -62,7 +64,7 @@ export function useAuth() {
       console.log('[AUTH] Login successful:', user.email);
 
       const userDoc = await authService.getUserData(user.uid);
-      const role = userDoc?.role || 'user';
+      const role = userDoc?.role || 'client';
 
       if (role === 'driver') {
         router.replace('/(tabs)/driver-home');
@@ -107,7 +109,7 @@ export function useAuth() {
       console.log('[AUTH] Registration successful:', user.email);
 
       const userDoc = await authService.getUserData(user.uid);
-      const role = userDoc?.role || 'user';
+      const role = userDoc?.role || 'client';
 
       if (role === 'driver') {
         router.replace('/(tabs)/driver-home');
@@ -135,7 +137,7 @@ export function useAuth() {
       console.log('[AUTH] Google login successful:', user.email);
 
       const userDoc = await authService.getUserData(user.uid);
-      const role = userDoc?.role || 'user';
+      const role = userDoc?.role || 'client';
 
       if (role === 'driver') {
         router.replace('/(tabs)/driver-home');

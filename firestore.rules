@@ -99,17 +99,17 @@ service cloud.firestore {
     match /rides/{rideId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
-                     ('driverId' in resource.data && resource.data.driverId == request.auth.uid) ||
+                     resource.data.status == 'pending' ||
+                     ('driverDetails' in resource.data && 'idCard' in resource.data.driverDetails && resource.data.driverDetails.idCard == request.auth.uid) ||
                      isAdmin()
                    );
 
       allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid;
+                       !isUserBanned();
 
       allow update: if isAuthenticated() && (
                        resource.data.userId == request.auth.uid ||
-                       (isDriver() && 'driverId' in resource.data && resource.data.driverId == request.auth.uid) ||
+                       isDriver() ||
                        isAdmin()
                      );
 

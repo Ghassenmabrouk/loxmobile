@@ -112,6 +112,33 @@ export default function ActiveRideNavigation() {
     );
   };
 
+  const handleCompleteRide = () => {
+    Alert.alert(
+      'Complete Ride',
+      'Mark this ride as completed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, 'rides', rideId), {
+                status: 'completed',
+                endTime: new Date(),
+              });
+              Alert.alert('Success', 'Ride completed!', [
+                { text: 'OK', onPress: () => router.replace('/(tabs)/driver-home') }
+              ]);
+            } catch (error) {
+              console.error('Error completing ride:', error);
+              Alert.alert('Error', 'Failed to complete ride');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
 import { driverService } from '@/app/services/driverService';
-import { useLocation } from '@/hooks/useLocation';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface RideDetail {
   id: string;
@@ -47,7 +45,6 @@ export default function DriverRideDetailScreen() {
   const [ride, setRide] = useState<RideDetail | null>(null);
   const [isAtPickup, setIsAtPickup] = useState(false);
   const [rideStarted, setRideStarted] = useState(false);
-  const { location } = useLocation({ continuous: true });
 
   useEffect(() => {
     if (!id) return;
@@ -157,79 +154,6 @@ export default function DriverRideDetailScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {rideStarted && (
-          <View style={styles.navigationCard}>
-            <View style={styles.mapHeader}>
-              <View style={styles.navigationHeaderInline}>
-                <Ionicons name="navigate" size={24} color="#2196F3" />
-                <Text style={styles.navigationTitleInline}>Navigation Active</Text>
-              </View>
-              <View style={styles.destinationInfoInline}>
-                <Ionicons name="flag" size={16} color="#D4AF37" />
-                <Text style={styles.destinationTextInline} numberOfLines={1}>
-                  {ride.destinations?.[0]?.destinationName || 'Destination'}
-                </Text>
-              </View>
-            </View>
-            {location && ride.destinations?.[0]?.location ? (
-              <MapView
-                style={styles.map}
-                provider={Platform.OS === 'web' ? undefined : PROVIDER_GOOGLE}
-                initialRegion={{
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                  latitudeDelta: 0.05,
-                  longitudeDelta: 0.05,
-                }}
-                showsUserLocation={true}
-                showsMyLocationButton={true}
-                followsUserLocation={true}
-              >
-                <Marker
-                  coordinate={{
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                  }}
-                  title="Your Location"
-                  description="You are here"
-                >
-                  <View style={styles.carMarker}>
-                    <Ionicons name="car" size={32} color="#2196F3" />
-                  </View>
-                </Marker>
-                {(() => {
-                  try {
-                    const destCoords = ride.destinations[0].location.split(',');
-                    const destLat = parseFloat(destCoords[0].trim());
-                    const destLng = parseFloat(destCoords[1].trim());
-                    if (!isNaN(destLat) && !isNaN(destLng)) {
-                      return (
-                        <Marker
-                          coordinate={{
-                            latitude: destLat,
-                            longitude: destLng,
-                          }}
-                          title="Destination"
-                          description={ride.destinations[0].destinationName}
-                          pinColor="#D4AF37"
-                        />
-                      );
-                    }
-                  } catch (e) {
-                    console.error('Error parsing destination coordinates:', e);
-                  }
-                  return null;
-                })()}
-              </MapView>
-            ) : (
-              <View style={styles.mapPlaceholder}>
-                <Ionicons name="map" size={48} color="#999" />
-                <Text style={styles.mapPlaceholderText}>Loading map...</Text>
-              </View>
-            )}
-          </View>
-        )}
-
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <Text style={styles.statusTitle}>Ride Status</Text>
@@ -435,73 +359,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  navigationCard: {
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  mapHeader: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  navigationHeaderInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  navigationTitleInline: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2196F3',
-  },
-  destinationInfoInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  destinationTextInline: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-    flex: 1,
-  },
-  map: {
-    width: '100%',
-    height: 400,
-  },
-  carMarker: {
-    backgroundColor: '#FFFFFF',
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#2196F3',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  mapPlaceholder: {
-    width: '100%',
-    height: 400,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  mapPlaceholderText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 12,
   },
   statusCard: {
     backgroundColor: '#FFFFFF',

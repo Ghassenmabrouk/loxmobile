@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/app/services/adminService';
 import { FirebaseUser } from '@/app/types/firebase';
+import { createMultipleTestRides } from '@/app/services/testDataService';
 
 export default function AdminScreen() {
   const [drivers, setDrivers] = useState<Array<FirebaseUser & { id: string }>>([]);
@@ -96,17 +97,39 @@ export default function AdminScreen() {
     }
   };
 
+  const handleCreateTestRides = async () => {
+    try {
+      setLoading(true);
+      const results = await createMultipleTestRides(3);
+      const successCount = results.filter(r => r.success).length;
+      Alert.alert('Success', `Created ${successCount} test ride(s) successfully!`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create test rides');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Admin Dashboard</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowAddDriver(true)}
-        >
-          <Ionicons name="person-add" size={20} color="#1a1a1a" />
-          <Text style={styles.addButtonText}>Add Driver</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.testButton}
+            onPress={handleCreateTestRides}
+          >
+            <Ionicons name="car-sport" size={20} color="#fff" />
+            <Text style={styles.testButtonText}>Test Rides</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowAddDriver(true)}
+          >
+            <Ionicons name="person-add" size={20} color="#1a1a1a" />
+            <Text style={styles.addButtonText}>Add Driver</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading && !showAddDriver ? (
@@ -289,6 +312,24 @@ const styles = StyleSheet.create({
     fontFamily: 'Playfair-Bold',
     fontSize: 28,
     color: '#D4AF37',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  testButtonText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 13,
+    color: '#fff',
   },
   addButton: {
     flexDirection: 'row',

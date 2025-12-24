@@ -7,7 +7,6 @@ import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { SplashScreen } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { Head } from 'expo-router/head';
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -25,6 +24,18 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css';
+      document.head.appendChild(link);
+      return () => {
+        document.head.removeChild(link);
+      };
+    }
+  }, []);
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -39,14 +50,6 @@ export default function RootLayout() {
 
   return (
     <>
-      {Platform.OS === 'web' && (
-        <Head>
-          <link
-            href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
-            rel="stylesheet"
-          />
-        </Head>
-      )}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

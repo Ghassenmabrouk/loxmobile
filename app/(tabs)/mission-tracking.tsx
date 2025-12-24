@@ -7,6 +7,7 @@ import { getMission, getClientMissions } from '@/app/services/missionService';
 import { Mission } from '@/app/types/mission';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
+import { authService } from '@/app/services/authService';
 
 export default function MissionTrackingScreen() {
   const router = useRouter();
@@ -22,9 +23,20 @@ export default function MissionTrackingScreen() {
 
   useEffect(() => {
     if (user) {
-      loadMissions();
+      initializeUserAndLoadMissions();
     }
   }, [user]);
+
+  async function initializeUserAndLoadMissions() {
+    if (!user) return;
+
+    try {
+      await authService.migrateUserDocument(user.uid);
+      await loadMissions();
+    } catch (error) {
+      console.error('Error initializing user:', error);
+    }
+  }
 
   useEffect(() => {
     if (selectedMissionId) {

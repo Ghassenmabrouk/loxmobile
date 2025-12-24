@@ -9,6 +9,7 @@ import { createMission, calculatePrice } from '@/app/services/missionService';
 import { SecurityLevel, MissionType } from '@/app/types/mission';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
+import { authService } from '@/app/services/authService';
 
 export default function MissionBookingScreen() {
   const router = useRouter();
@@ -37,8 +38,19 @@ export default function MissionBookingScreen() {
   const [pricing, setPricing] = useState({ basePrice: 0, securityPremium: 0, totalPrice: 0 });
 
   useEffect(() => {
-    loadUserData();
+    initializeUserData();
   }, [user]);
+
+  async function initializeUserData() {
+    if (!user) return;
+
+    try {
+      await authService.migrateUserDocument(user.uid);
+      await loadUserData();
+    } catch (error) {
+      console.error('Error initializing user:', error);
+    }
+  }
 
   useEffect(() => {
     if (pickupAddress && dropoffAddress && securityLevel) {

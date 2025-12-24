@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/hooks/useAuth';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
+import { authService } from '@/app/services/authService';
 
 export default function ONTimeHomeScreen() {
   const router = useRouter();
@@ -13,8 +14,19 @@ export default function ONTimeHomeScreen() {
   const [securityClearance, setSecurityClearance] = useState('standard');
 
   useEffect(() => {
-    loadUserData();
+    initializeUserData();
   }, [user]);
+
+  async function initializeUserData() {
+    if (!user) return;
+
+    try {
+      await authService.migrateUserDocument(user.uid);
+      await loadUserData();
+    } catch (error) {
+      console.error('Error initializing user:', error);
+    }
+  }
 
   async function loadUserData() {
     if (!user) return;

@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getClientMissions } from '@/app/services/missionService';
 import { generateAndDownloadReport } from '@/app/services/pdfReportService';
 import { Mission } from '@/app/types/mission';
+import { authService } from '@/app/services/authService';
 
 export default function MissionHistoryScreen() {
   const router = useRouter();
@@ -16,9 +17,20 @@ export default function MissionHistoryScreen() {
 
   useEffect(() => {
     if (user) {
-      loadMissions();
+      initializeAndLoadMissions();
     }
   }, [user, filter]);
+
+  async function initializeAndLoadMissions() {
+    if (!user) return;
+
+    try {
+      await authService.migrateUserDocument(user.uid);
+      await loadMissions();
+    } catch (error) {
+      console.error('Error initializing user:', error);
+    }
+  }
 
   async function loadMissions() {
     if (!user) return;

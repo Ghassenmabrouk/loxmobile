@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '@/hooks/useLocation';
+import LuxuryMapPlaceholder from '@/components/LuxuryMapPlaceholder';
 
 let MapView: any;
 let Marker: any;
@@ -77,8 +79,13 @@ export default function TrackScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
-          <View style={[styles.map, styles.webMapPlaceholder]}>
-            <Text style={styles.webMapText}>Map view is only available on mobile</Text>
+          <View style={styles.webMapContainer}>
+            <LuxuryMapPlaceholder
+              pickupLocation="Current Location"
+              destination="Times Square, New York"
+              eta={estimatedTime}
+              driverLocation={driverLocation}
+            />
           </View>
         ) : (
           <MapView
@@ -113,38 +120,74 @@ export default function TrackScreen() {
 
       <View style={styles.rideInfo}>
         <View style={styles.header}>
-          <Text style={styles.title}>Your ride is on the way</Text>
-          <View style={styles.timeContainer}>
-            <Ionicons name="time" size={20} color="#D4AF37" />
-            <Text style={styles.time}>{estimatedTime} min</Text>
+          <View>
+            <Text style={styles.title}>Your Luxury Ride</Text>
+            <Text style={styles.subtitle}>Driver en route to pickup</Text>
           </View>
+          <LinearGradient
+            colors={['#D4AF37', '#C5A028']}
+            style={styles.timeContainer}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Ionicons name="time" size={18} color="#1A1A1A" />
+            <Text style={styles.time}>{estimatedTime} min</Text>
+          </LinearGradient>
         </View>
 
-        <View style={styles.driverInfo}>
-          <View style={styles.driverDetails}>
-            <View style={styles.driverImagePlaceholder} />
-            <View style={styles.driverText}>
-              <Text style={styles.driverName}>Michael Chen</Text>
-              <Text style={styles.carInfo}>Mercedes S-Class • ABC 123</Text>
+        <View style={styles.driverCard}>
+          <View style={styles.driverInfo}>
+            <View style={styles.driverDetails}>
+              <Image
+                source={{ uri: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400' }}
+                style={styles.driverImage}
+              />
+              <View style={styles.driverText}>
+                <Text style={styles.driverName}>Michael Chen</Text>
+                <Text style={styles.carInfo}>Mercedes S-Class</Text>
+                <Text style={styles.licensePlate}>ABC 1234</Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.rating}>
-            <Text style={styles.ratingText}>4.9 ★</Text>
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={16} color="#D4AF37" />
+              <Text style={styles.ratingText}>4.9</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="call" size={24} color="#1a1a1a" />
-            <Text style={styles.actionText}>Call</Text>
+            <LinearGradient
+              colors={['#1A1A1A', '#2A2A2A']}
+              style={styles.actionButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="call" size={24} color="#D4AF37" />
+              <Text style={styles.actionText}>Call</Text>
+            </LinearGradient>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="chatbubble" size={24} color="#1a1a1a" />
-            <Text style={styles.actionText}>Message</Text>
+            <LinearGradient
+              colors={['#1A1A1A', '#2A2A2A']}
+              style={styles.actionButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="chatbubble" size={24} color="#D4AF37" />
+              <Text style={styles.actionText}>Message</Text>
+            </LinearGradient>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="shield" size={24} color="#1a1a1a" />
-            <Text style={styles.actionText}>Safety</Text>
+            <LinearGradient
+              colors={['#1A1A1A', '#2A2A2A']}
+              style={styles.actionButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="shield" size={24} color="#D4AF37" />
+              <Text style={styles.actionText}>Safety</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -159,7 +202,7 @@ export default function TrackScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F8F8',
   },
   mapContainer: {
     flex: 1,
@@ -167,15 +210,11 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  webMapPlaceholder: {
-    backgroundColor: '#f5f5f5',
+  webMapContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#F8F8F8',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  webMapText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#666',
   },
   driverMarker: {
     backgroundColor: '#D4AF37',
@@ -200,111 +239,164 @@ const styles = StyleSheet.create({
   },
   rideInfo: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 28,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -2,
+      height: -4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 10,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 24,
   },
   title: {
     fontFamily: 'Playfair-Bold',
-    fontSize: 24,
-    color: '#1a1a1a',
+    fontSize: 28,
+    color: '#1A1A1A',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#666',
+    letterSpacing: 0.3,
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   time: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: '#1a1a1a',
-    marginLeft: 4,
+    fontFamily: 'Inter-Bold',
+    fontSize: 15,
+    color: '#1A1A1A',
+    letterSpacing: 0.5,
+  },
+  driverCard: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
   },
   driverInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
   },
   driverDetails: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  driverImagePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f5f5f5',
-    marginRight: 12,
+  driverImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 16,
+    borderWidth: 2,
+    borderColor: '#D4AF37',
   },
   driverText: {
     justifyContent: 'center',
+    flex: 1,
   },
   driverName: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: '#1a1a1a',
+    fontFamily: 'Inter-Bold',
+    fontSize: 18,
+    color: '#1A1A1A',
     marginBottom: 4,
+    letterSpacing: 0.3,
   },
   carInfo: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#666',
-  },
-  rating: {
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    borderRadius: 12,
-  },
-  ratingText: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 14,
-    color: '#1a1a1a',
+    color: '#666',
+    marginBottom: 2,
+  },
+  licensePlate: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#999',
+    letterSpacing: 1,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ratingText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 16,
+    color: '#1A1A1A',
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 24,
+    gap: 12,
   },
   actionButton: {
     flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 16,
     borderRadius: 12,
-    marginHorizontal: 6,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  actionButtonGradient: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
   },
   actionText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#1a1a1a',
-    marginTop: 8,
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 13,
+    color: '#D4AF37',
+    marginTop: 6,
+    letterSpacing: 0.5,
   },
   cancelButton: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   cancelText: {
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'Inter-Bold',
     fontSize: 16,
-    color: '#D4AF37',
+    color: '#1A1A1A',
+    letterSpacing: 0.5,
   },
 });

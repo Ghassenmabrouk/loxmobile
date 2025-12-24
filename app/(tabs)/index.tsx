@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '@/hooks/useLocation';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,25 +14,31 @@ const LUXURY_CARS: LuxuryCar[] = [
   {
     id: '1',
     name: 'Mercedes S-Class',
-    image: 'https://images.unsplash.com/photo-1622194993799-e8e8bf636371?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg?auto=compress&cs=tinysrgb&w=800',
     pricePerKm: 2.5,
-    eta: '5'
+    eta: '5',
+    category: 'Premium',
+    capacity: '4 Passengers',
   },
   {
     id: '2',
     name: 'BMW 7 Series',
-    image: 'https://images.unsplash.com/photo-1556189250-72ba954cfc2b?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.pexels.com/photos/244206/pexels-photo-244206.jpeg?auto=compress&cs=tinysrgb&w=800',
     pricePerKm: 3,
-    eta: '8'
+    eta: '8',
+    category: 'Luxury',
+    capacity: '4 Passengers',
   },
   {
     id: '3',
     name: 'Rolls-Royce Ghost',
-    image: 'https://images.unsplash.com/photo-1631295868223-63265b40d9e4?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.pexels.com/photos/3802510/pexels-photo-3802510.jpeg?auto=compress&cs=tinysrgb&w=800',
     pricePerKm: 5,
-    eta: '12'
+    eta: '12',
+    category: 'Ultra',
+    capacity: '4 Passengers',
   }
-];
+] as (LuxuryCar & { category?: string; capacity?: string })[];
 
 export default function HomeScreen() {
   const { location, errorMsg } = useLocation();
@@ -370,38 +377,63 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <View style={styles.userInfo}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80' }}
-              style={styles.avatar}
-            />
-            <View>
-              <Text style={styles.greeting}>Welcome,</Text>
-              <Text style={styles.name}>{user?.displayName || user?.email?.split('@')[0] || 'Guest'}</Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <LinearGradient
+          colors={['#1A1A1A', '#2A2A2A', '#F8F8F8']}
+          style={styles.headerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        >
+          <View style={styles.header}>
+            <View style={styles.userInfo}>
+              <Image
+                source={{ uri: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400' }}
+                style={styles.avatar}
+              />
+              <View style={styles.userTextContainer}>
+                <Text style={styles.greeting}>Welcome back,</Text>
+                <Text style={styles.name}>{user?.displayName || user?.email?.split('@')[0] || 'Guest'}</Text>
+              </View>
             </View>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications-outline" size={24} color="#D4AF37" />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={styles.actionButton} 
+          <TouchableOpacity
+            style={styles.actionButton}
             onPress={() => {
-              setSelectedCar(LUXURY_CARS[0]); // Select first car by default
+              setSelectedCar(LUXURY_CARS[0]);
               setShowScheduleModal(true);
             }}
           >
-            <Ionicons name="car" size={24} color="#fff" />
-            <Text style={styles.actionButtonText}>Book a Ride</Text>
+            <LinearGradient
+              colors={['#D4AF37', '#C5A028']}
+              style={styles.actionButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="car" size={26} color="#1A1A1A" />
+              <Text style={styles.actionButtonText}>Book Now</Text>
+            </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.trackButton]}
+          <TouchableOpacity
+            style={styles.actionButton}
             onPress={handleTrackRide}
             disabled={!upcomingRide}
           >
-            <Ionicons name="navigate" size={24} color="#1a1a1a" />
-            <Text style={styles.trackButtonText}>Track Ride</Text>
+            <LinearGradient
+              colors={['#1A1A1A', '#2A2A2A']}
+              style={styles.actionButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="navigate" size={26} color="#D4AF37" />
+              <Text style={styles.trackButtonText}>Track Ride</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -473,25 +505,79 @@ export default function HomeScreen() {
   </View>
 )}
 
-        <Text style={styles.sectionTitle}>Available Luxury Cars</Text>
-        {LUXURY_CARS.map((car) => (
-          <TouchableOpacity 
-            key={car.id} 
-            style={[styles.carCard, selectedCar?.id === car.id && styles.selectedCard]}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Premium Fleet</Text>
+          <Text style={styles.sectionSubtitle}>Select your luxury experience</Text>
+        </View>
+
+        {LUXURY_CARS.map((car, index) => (
+          <TouchableOpacity
+            key={car.id}
+            style={[
+              styles.luxuryCarCard,
+              selectedCar?.id === car.id && styles.selectedLuxuryCard
+            ]}
             onPress={() => handleScheduleRide(car)}
           >
-            <Image source={{ uri: car.image }} style={styles.carImage} />
-            <View style={styles.carInfo}>
-              <Text style={styles.carName}>{car.name}</Text>
-              <View style={styles.carDetails}>
-                <View style={styles.detail}>
-                  <Ionicons name="time" size={16} color="#666" />
-                  <Text style={styles.detailText}>{car.eta} mins away</Text>
+            <LinearGradient
+              colors={['#FFFFFF', '#F8F8F8']}
+              style={styles.carCardGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            >
+              {(car as any).category && (
+                <View style={styles.categoryBadge}>
+                  <LinearGradient
+                    colors={
+                      (car as any).category === 'Ultra'
+                        ? ['#D4AF37', '#C5A028']
+                        : (car as any).category === 'Luxury'
+                        ? ['#C0C0C0', '#A8A8A8']
+                        : ['#CD7F32', '#B87333']
+                    }
+                    style={styles.categoryBadgeGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Text style={styles.categoryText}>{(car as any).category}</Text>
+                  </LinearGradient>
                 </View>
-                <Text style={styles.price}>${calculatePrice(car)}</Text>
+              )}
+
+              <Image source={{ uri: car.image }} style={styles.luxuryCarImage} />
+
+              <View style={styles.luxuryCarInfo}>
+                <View style={styles.carNameRow}>
+                  <Text style={styles.luxuryCarName}>{car.name}</Text>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.priceLabel}>Estimated</Text>
+                    <Text style={styles.luxuryPrice}>${calculatePrice(car)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.carFeatures}>
+                  <View style={styles.feature}>
+                    <Ionicons name="time-outline" size={16} color="#666" />
+                    <Text style={styles.featureText}>{car.eta} mins</Text>
+                  </View>
+                  <View style={styles.featureDivider} />
+                  <View style={styles.feature}>
+                    <Ionicons name="people-outline" size={16} color="#666" />
+                    <Text style={styles.featureText}>{(car as any).capacity}</Text>
+                  </View>
+                  <View style={styles.featureDivider} />
+                  <View style={styles.feature}>
+                    <Ionicons name="star" size={16} color="#D4AF37" />
+                    <Text style={styles.featureText}>4.9</Text>
+                  </View>
+                </View>
               </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#D4AF37" />
+
+              <View style={styles.selectButton}>
+                <Text style={styles.selectButtonText}>Select</Text>
+                <Ionicons name="arrow-forward" size={16} color="#1A1A1A" />
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -687,6 +773,242 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  headerGradient: {
+    paddingTop: 20,
+    paddingBottom: 32,
+    paddingHorizontal: 20,
+    marginBottom: -16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 14,
+    borderWidth: 2.5,
+    borderColor: '#D4AF37',
+  },
+  userTextContainer: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 14,
+    color: '#D4AF37',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  name: {
+    fontSize: 26,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    letterSpacing: 0.3,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(26, 26, 26, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF4444',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 28,
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  actionButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 10,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.5,
+  },
+  trackButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#D4AF37',
+    letterSpacing: 0.5,
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 15,
+    color: '#666',
+    letterSpacing: 0.3,
+  },
+  luxuryCarCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  selectedLuxuryCard: {
+    shadowColor: '#D4AF37',
+    shadowOpacity: 0.4,
+  },
+  carCardGradient: {
+    padding: 20,
+    position: 'relative',
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 10,
+  },
+  categoryBadgeGradient: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  luxuryCarImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  luxuryCarInfo: {
+    marginBottom: 16,
+  },
+  carNameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  luxuryCarName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
+    flex: 1,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  priceLabel: {
+    fontSize: 11,
+    color: '#999',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  luxuryPrice: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#D4AF37',
+    letterSpacing: 0.5,
+  },
+  carFeatures: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  feature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  featureText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  featureDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 8,
+  },
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A1A1A',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  selectButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#D4AF37',
+    letterSpacing: 0.5,
+  },
   bookingFormScroll: {
     flex: 1,
   },
@@ -819,121 +1141,83 @@ const styles = StyleSheet.create({
     color: '#fff',
     letterSpacing: 0.5,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollView: {
-    flex: 1,
-    padding: 20,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  greeting: {
-    fontSize: 16,
-    color: '#666',
-  },
-
- 
-  name: {
-    fontSize: 24,
-    color: '#1a1a1a',
-    fontWeight: 'bold',
-  },
   disabledInput: {
     backgroundColor: '#f5f5f5',
     color: '#666',
   },
-  actionButtons: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1a1a1a',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  trackButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  actionButtonText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  trackButtonText: {
-    fontSize: 16,
-    color: '#1a1a1a',
-    fontWeight: '600',
-  },
   tabs: {
     flexDirection: 'row',
     marginBottom: 24,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 4,
+    marginHorizontal: 20,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 14,
+    padding: 5,
   },
   tab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
   },
   activeTab: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tabText: {
     fontSize: 14,
-    color: '#666',
+    color: '#999',
+    letterSpacing: 0.3,
   },
   activeTabText: {
-    color: '#1a1a1a',
-    fontWeight: '600',
+    color: '#1A1A1A',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   statsContainer: {
     flexDirection: 'row',
     marginBottom: 24,
+    marginHorizontal: 20,
     gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   statNumber: {
-    fontSize: 32,
-    color: '#1a1a1a',
+    fontSize: 36,
+    color: '#1A1A1A',
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
+    letterSpacing: 0.3,
   },
   upcomingRideCard: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 20,
     marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
   },
   rideDetails: {
     flexDirection: 'row',
@@ -974,84 +1258,11 @@ const styles = StyleSheet.create({
     color: '#D4AF37',
     fontWeight: '600',
   },
-  locationContainer: {
-    marginBottom: 24,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  currentLocation: {
-    fontSize: 16,
-    color: '#666',
-    marginLeft: 12,
-  },
-  destinationInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1a1a1a',
-    marginLeft: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    color: '#1a1a1a',
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  carCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  selectedCard: {
-    borderColor: '#D4AF37',
-    borderWidth: 1,
-  },
-  carImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  carInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
   carName: {
     fontSize: 16,
     color: '#1a1a1a',
     fontWeight: '600',
     marginBottom: 8,
-  },
-  carDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  detail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  price: {
-    fontSize: 16,
-    color: '#D4AF37',
-    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,

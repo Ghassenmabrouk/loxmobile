@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isDriver() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver';
+    }
+
+    function isUserBanned() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return 'isBanned' in userDoc && userDoc.isBanned == true;
+    }
+
+    function isValidEmail(email) {
+      return email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAdmin();
+    }
+
+    // Rides Collection - NEW
+    match /rides/{rideId} {
+      // Users can read their own rides
+      // Drivers can read rides assigned to them
+      // Admins can read all rides
+      allow read: if isAuthenticated() && (
+                     resource.data.userId == request.auth.uid ||
+                     resource.data.driverId == request.auth.uid ||
+                     isAdmin()
+                   );
+
+      // Authenticated users can create rides for themselves
+      allow create: if isAuthenticated() &&
+                       !isUserBanned() &&
+                       request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own rides (cancel)
+      // Drivers can update assigned rides
+      // Admins can update any ride
+      allow update: if isAuthenticated() && (
+                       resource.data.userId == request.auth.uid ||
+                       (isDriver() && resource.data.driverId == request.auth.uid) ||
+                       isAdmin()
+                     );
+
+      // Only admins can delete rides
+      allow delete: if isAdmin();
+    }
+
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

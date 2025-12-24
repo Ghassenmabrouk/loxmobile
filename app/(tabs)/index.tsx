@@ -34,7 +34,7 @@ const LUXURY_CARS: LuxuryCar[] = [
 ];
 
 export default function HomeScreen() {
-  const { location } = useLocation();
+  const { location, errorMsg } = useLocation();
   const [destination, setDestination] = useState('');
   const [selectedCar, setSelectedCar] = useState<LuxuryCar | null>(null);
   const [estimatedDistance] = useState(10);
@@ -554,8 +554,12 @@ export default function HomeScreen() {
                   <Text style={styles.sectionLabel}>PICKUP LOCATION</Text>
                   <View style={styles.compactInput}>
                     <Ionicons name="location-outline" size={18} color="#D4AF37" />
-                    <Text style={styles.compactInputText}>
-                      {location ? 'Current Location' : 'Locating...'}
+                    <Text style={styles.compactInputText} numberOfLines={1}>
+                      {location
+                        ? 'Current Location'
+                        : errorMsg
+                        ? 'Location unavailable - Click to allow'
+                        : 'Getting your location...'}
                     </Text>
                   </View>
                 </View>

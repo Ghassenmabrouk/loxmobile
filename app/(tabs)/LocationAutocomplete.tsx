@@ -148,19 +148,20 @@ const LocationAutocomplete = ({ onSelect, placeholder }: LocationAutocompletePro
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputContainer}>
-        <Ionicons name="location" size={20} color="#D4AF37" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder={placeholder}
-          value={query}
-          onChangeText={handleChange}
-          placeholderTextColor="#666"
-          testID="location-autocomplete-input"
-          clearButtonMode="while-editing"
-        />
-        {loading && <ActivityIndicator size="small" color="#D4AF37" testID="loading-indicator" />}
-      </View>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        value={query}
+        onChangeText={handleChange}
+        placeholderTextColor="#999"
+        testID="location-autocomplete-input"
+        clearButtonMode="while-editing"
+      />
+      {loading && (
+        <View style={styles.loadingIndicator}>
+          <ActivityIndicator size="small" color="#D4AF37" testID="loading-indicator" />
+        </View>
+      )}
       
       {error && (
         <Text style={styles.errorText}>{error}</Text>
@@ -201,40 +202,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     position: 'relative',
-    zIndex: 1000,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  icon: {
-    marginRight: 8,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: '#1a1a1a',
     padding: 0,
     margin: 0,
-    height: 44,
+    backgroundColor: 'transparent',
+  },
+  loadingIndicator: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
   },
   suggestionsList: {
     position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
+    top: 60,
+    left: -12,
+    right: -12,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 10,
     maxHeight: 200,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    elevation: 3,
-    marginTop: 4,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     zIndex: 9999,
   },
   suggestionItem: {

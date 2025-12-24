@@ -163,32 +163,31 @@ export default function ActiveRideNavigation() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Ionicons name="navigate" size={20} color="#D4AF37" />
-            <Text style={styles.headerTitle}>Active Navigation</Text>
+            <Text style={styles.headerTitle}>Navigation</Text>
           </View>
-          <View style={styles.headerRight} />
+          <TouchableOpacity onPress={handleCompleteRide} style={styles.completeButton}>
+            <Text style={styles.completeButtonText}>Complete</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Map */}
-        <View style={styles.mapContainer}>
-          {coords ? (
-            <NavigationMap
-              driverLocation={coords.pickup}
-              destination={coords.destination}
-              destinationName={ride.destinations[0].destinationName}
-            />
-          ) : (
-            <View style={styles.mapPlaceholder}>
-              <Text style={styles.mapPlaceholderText}>Map unavailable</Text>
-            </View>
-          )}
-        </View>
+        {/* Navigation Map - Full Screen */}
+        {coords ? (
+          <NavigationMap
+            driverLocation={coords.pickup}
+            destination={coords.destination}
+            destinationName={ride.destinations[0].destinationName}
+          />
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Text style={styles.mapPlaceholderText}>Loading navigation...</Text>
+          </View>
+        )}
 
-        {/* Ride Information Panel */}
-        <ScrollView style={styles.infoPanel} showsVerticalScrollIndicator={false}>
+        {/* Compact Ride Info Panel */}
+        <ScrollView style={styles.compactInfoPanel} showsVerticalScrollIndicator={false}>
           {/* Passenger Info */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -324,14 +323,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerCenter: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
-    gap: 8,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
+  },
+  completeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#D4AF37',
+  },
+  completeButtonText: {
+    color: '#1a1a1a',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   headerRight: {
     width: 40,
@@ -344,9 +353,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
   },
-  infoPanel: {
-    flex: 1,
+  compactInfoPanel: {
+    maxHeight: 150,
     paddingHorizontal: 20,
+    paddingTop: 12,
   },
   section: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',

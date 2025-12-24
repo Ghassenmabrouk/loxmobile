@@ -15,11 +15,6 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
     function isDriver() {
       return isAuthenticated() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver';
@@ -102,8 +97,7 @@ service cloud.firestore {
     match /missions/{missionId} {
       allow read: if isAuthenticated() && (
                      resource.data.clientId == request.auth.uid ||
-                     resource.data.driverId == request.auth.uid ||
-                     isAdmin()
+                     resource.data.driverId == request.auth.uid
                    );
 
       allow create: if isAuthenticated() &&
@@ -133,19 +127,17 @@ service cloud.firestore {
                            'missionStartedAt', 'missionCompletedAt', 'actualDuration',
                            'confirmedAt', 'updatedAt', 'documentDetails'
                          ])
-                       ) ||
-                       isAdmin()
+                       )
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /missionTracking/{missionId} {
       allow read: if isAuthenticated() && (
                      exists(/databases/$(database)/documents/missions/$(missionId)) &&
                      (get(/databases/$(database)/documents/missions/$(missionId)).data.clientId == request.auth.uid ||
-                      get(/databases/$(database)/documents/missions/$(missionId)).data.driverId == request.auth.uid ||
-                      isAdmin())
+                      get(/databases/$(database)/documents/missions/$(missionId)).data.driverId == request.auth.uid)
                    );
 
       allow create: if isAuthenticated() &&
@@ -157,15 +149,14 @@ service cloud.firestore {
                        isDriver() &&
                        resource.data.driverId == request.auth.uid;
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /missionLogs/{logId} {
       allow read: if isAuthenticated() && (
                      exists(/databases/$(database)/documents/missions/$(resource.data.missionId)) &&
                      (get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.clientId == request.auth.uid ||
-                      get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.driverId == request.auth.uid ||
-                      isAdmin())
+                      get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.driverId == request.auth.uid)
                    );
 
       allow create: if isAuthenticated() && isUserActive();
@@ -175,14 +166,11 @@ service cloud.firestore {
 
     match /securityLevels/{levelId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     match /driverProfiles/{driverId} {
-      allow read: if isAuthenticated() && (
-                     isOwner(driverId) ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && isOwner(driverId);
 
       allow create: if isAuthenticated() &&
                        isOwner(driverId) &&
@@ -192,81 +180,60 @@ service cloud.firestore {
                          'backgroundCheck', 'vehicle', 'status'
                        ]);
 
-      allow update: if isAuthenticated() && (
-                       (isOwner(driverId) &&
+      allow update: if isAuthenticated() && isOwner(driverId) &&
                         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
                           'driverId', 'driverCode', 'certificationLevel',
                           'backgroundCheck', 'stats', 'commissionRate', 'subscriptionTier'
-                        ])) ||
-                       isAdmin()
-                     );
+                        ]);
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /drivers/{driverId} {
-      allow read: if isAuthenticated() && (
-                     isOwner(driverId) ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && isOwner(driverId);
 
-      allow create: if isAuthenticated() &&
-                       isOwner(driverId);
+      allow create: if isAuthenticated() && isOwner(driverId);
 
-      allow update: if isAuthenticated() && (
-                       isOwner(driverId) ||
-                       isAdmin()
-                     );
+      allow update: if isAuthenticated() && isOwner(driverId);
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /corporateAccounts/{corporateId} {
-      allow read: if isAuthenticated() && (
-                     request.auth.uid in resource.data.authorizedUsers ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.authorizedUsers;
 
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     match /documentReports/{reportId} {
       allow read: if isAuthenticated() && (
                      exists(/databases/$(database)/documents/missions/$(resource.data.missionId)) &&
                      (get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.clientId == request.auth.uid ||
-                      get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.driverId == request.auth.uid ||
-                      isAdmin())
+                      get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.driverId == request.auth.uid)
                    );
 
-      allow create: if isAuthenticated() &&
-                       (isDriver() || isAdmin());
+      allow create: if isAuthenticated() && isDriver();
 
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update: if false;
+      allow delete: if false;
     }
 
     match /documentScans/{scanId} {
-      allow read: if isAuthenticated() && (
-                     isDriver() ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && isDriver();
 
-      allow create: if isAuthenticated() &&
-                       (isDriver() || isAdmin());
+      allow create: if isAuthenticated() && isDriver();
 
-      allow update: if isAuthenticated() &&
-                       (isDriver() || isAdmin());
+      allow update: if isAuthenticated() && isDriver();
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /transfers/{transferId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
-                     resource.data.driverId == request.auth.uid ||
-                     isAdmin()
+                     resource.data.driverId == request.auth.uid
                    );
 
       allow create: if isAuthenticated() &&
@@ -275,11 +242,10 @@ service cloud.firestore {
 
       allow update: if isAuthenticated() && (
                        resource.data.userId == request.auth.uid ||
-                       (isDriver() && resource.data.driverId == request.auth.uid) ||
-                       isAdmin()
+                       (isDriver() && resource.data.driverId == request.auth.uid)
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -289,15 +255,12 @@ service cloud.firestore {
     match /hotels/{hotelId} {
       allow read: if true;  // Public listings
 
-      allow create: if isAuthenticated() && (isAdmin() || isHotelManager());
+      allow create: if isAuthenticated() && isHotelManager();
 
-      allow update: if isAuthenticated() && (
-                       isAdmin() ||
-                       (isHotelManager() &&
-                        resource.data.managerId == request.auth.uid)
-                     );
+      allow update: if isAuthenticated() && isHotelManager() &&
+                        resource.data.managerId == request.auth.uid;
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /hotel-bookings/{bookingId} {
@@ -306,7 +269,6 @@ service cloud.firestore {
                      (isHotelManager() &&
                       exists(/databases/$(database)/documents/hotels/$(resource.data.hotelId)) &&
                       get(/databases/$(database)/documents/hotels/$(resource.data.hotelId)).data.managerId == request.auth.uid) ||
-                     isAdmin() ||
                      isConcierge()
                    );
 
@@ -325,11 +287,10 @@ service cloud.firestore {
                         request.resource.data.status in ['cancelled']) ||
                        (isHotelManager() &&
                         exists(/databases/$(database)/documents/hotels/$(resource.data.hotelId)) &&
-                        get(/databases/$(database)/documents/hotels/$(resource.data.hotelId)).data.managerId == request.auth.uid) ||
-                       isAdmin()
+                        get(/databases/$(database)/documents/hotels/$(resource.data.hotelId)).data.managerId == request.auth.uid)
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -339,15 +300,12 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if true;  // Public listings
 
-      allow create: if isAuthenticated() && (isAdmin() || isEventManager());
+      allow create: if isAuthenticated() && isEventManager();
 
-      allow update: if isAuthenticated() && (
-                       isAdmin() ||
-                       (isEventManager() &&
-                        resource.data.organizerId == request.auth.uid)
-                     );
+      allow update: if isAuthenticated() && isEventManager() &&
+                        resource.data.organizerId == request.auth.uid;
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /event-bookings/{bookingId} {
@@ -356,7 +314,6 @@ service cloud.firestore {
                      (isEventManager() &&
                       exists(/databases/$(database)/documents/events/$(resource.data.eventId)) &&
                       get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.organizerId == request.auth.uid) ||
-                     isAdmin() ||
                      isConcierge()
                    );
 
@@ -375,11 +332,10 @@ service cloud.firestore {
                         request.resource.data.status in ['cancelled']) ||
                        (isEventManager() &&
                         exists(/databases/$(database)/documents/events/$(resource.data.eventId)) &&
-                        get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.organizerId == request.auth.uid) ||
-                       isAdmin()
+                        get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.organizerId == request.auth.uid)
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -389,15 +345,12 @@ service cloud.firestore {
     match /restaurants/{restaurantId} {
       allow read: if true;  // Public listings
 
-      allow create: if isAuthenticated() && (isAdmin() || isRestaurantManager());
+      allow create: if isAuthenticated() && isRestaurantManager();
 
-      allow update: if isAuthenticated() && (
-                       isAdmin() ||
-                       (isRestaurantManager() &&
-                        resource.data.managerId == request.auth.uid)
-                     );
+      allow update: if isAuthenticated() && isRestaurantManager() &&
+                        resource.data.managerId == request.auth.uid;
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /restaurant-bookings/{bookingId} {
@@ -406,7 +359,6 @@ service cloud.firestore {
                      (isRestaurantManager() &&
                       exists(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)) &&
                       get(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)).data.managerId == request.auth.uid) ||
-                     isAdmin() ||
                      isConcierge()
                    );
 
@@ -425,11 +377,10 @@ service cloud.firestore {
                         request.resource.data.status in ['cancelled']) ||
                        (isRestaurantManager() &&
                         exists(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)) &&
-                        get(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)).data.managerId == request.auth.uid) ||
-                       isAdmin()
+                        get(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)).data.managerId == request.auth.uid)
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -439,8 +390,7 @@ service cloud.firestore {
     match /rides/{rideId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
-                     resource.data.driverId == request.auth.uid ||
-                     isAdmin()
+                     resource.data.driverId == request.auth.uid
                    );
 
       allow create: if isAuthenticated() &&
@@ -457,11 +407,10 @@ service cloud.firestore {
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
                         request.resource.data.status in ['cancelled']) ||
                        (isDriver() &&
-                        resource.data.driverId == request.auth.uid) ||
-                       isAdmin()
+                        resource.data.driverId == request.auth.uid)
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -471,7 +420,6 @@ service cloud.firestore {
     match /conversations/{conversationId} {
       allow read: if isAuthenticated() && (
                      request.auth.uid in resource.data.participants ||
-                     isAdmin() ||
                      isConcierge()
                    );
 
@@ -481,17 +429,14 @@ service cloud.firestore {
 
       allow update: if isAuthenticated() && (
                        request.auth.uid in resource.data.participants ||
-                       isAdmin() ||
                        isConcierge()
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
 
       match /messages/{messageId} {
-        allow read: if isAuthenticated() && (
-                       request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants ||
-                       isAdmin()
-                     );
+        allow read: if isAuthenticated() &&
+                       request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
 
         allow create: if isAuthenticated() &&
                          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
@@ -501,9 +446,7 @@ service cloud.firestore {
                          (resource.data.senderId == request.auth.uid ||
                           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
 
-        allow delete: if isAuthenticated() &&
-                         (resource.data.senderId == request.auth.uid ||
-                          isAdmin());
+        allow delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
       }
     }
 
@@ -523,15 +466,9 @@ service cloud.firestore {
                        request.resource.data.rating >= 1 &&
                        request.resource.data.rating <= 5;
 
-      allow update: if isAuthenticated() && (
-                       resource.data.userId == request.auth.uid ||
-                       isAdmin()
-                     );
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      allow delete: if isAuthenticated() && (
-                       resource.data.userId == request.auth.uid ||
-                       isAdmin()
-                     );
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // ============================================
@@ -560,8 +497,7 @@ service cloud.firestore {
     match /concierge-requests/{requestId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
-                     isConcierge() ||
-                     isAdmin()
+                     isConcierge()
                    );
 
       allow create: if isAuthenticated() &&
@@ -573,11 +509,10 @@ service cloud.firestore {
                        (resource.data.userId == request.auth.uid &&
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
                         request.resource.data.status in ['cancelled']) ||
-                       isConcierge() ||
-                       isAdmin()
+                       isConcierge()
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -585,37 +520,23 @@ service cloud.firestore {
     // ============================================
 
     match /user_profiles/{userId} {
-      allow read: if isAuthenticated() && (
-                     isOwner(userId) ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && isOwner(userId);
 
-      allow create: if isAuthenticated() &&
-                       isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId);
 
-      allow update: if isAuthenticated() && (
-                       isOwner(userId) ||
-                       isAdmin()
-                     );
+      allow update: if isAuthenticated() && isOwner(userId);
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /user_settings/{userId} {
-      allow read: if isAuthenticated() && (
-                     isOwner(userId) ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && isOwner(userId);
 
-      allow create: if isAuthenticated() &&
-                       isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId);
 
-      allow update: if isAuthenticated() && (
-                       isOwner(userId) ||
-                       isAdmin()
-                     );
+      allow update: if isAuthenticated() && isOwner(userId);
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -655,10 +576,7 @@ service cloud.firestore {
     // ============================================
 
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
       allow create: if isAuthenticated();
 
@@ -666,7 +584,7 @@ service cloud.firestore {
                        resource.data.userId == request.auth.uid &&
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -674,31 +592,23 @@ service cloud.firestore {
     // ============================================
 
     match /paymentMethods/{paymentMethodId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
       allow create: if isAuthenticated() &&
                        isUserActive() &&
                        request.resource.data.userId == request.auth.uid;
 
-      allow update: if isAuthenticated() &&
-                       (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      allow delete: if isAuthenticated() &&
-                       (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     match /paymentHistory/{paymentHistoryId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
       allow create: if isAuthenticated();
       allow update: if false;
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -707,19 +617,15 @@ service cloud.firestore {
 
     match /promotions/{promotionId} {
       allow read: if true;  // Public promotions
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     match /user-promotions/{userPromotionId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() &&
-                       (resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isAdmin();
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
     }
 
     // ============================================
@@ -727,17 +633,17 @@ service cloud.firestore {
     // ============================================
 
     match /activity-logs/{logId} {
-      allow read: if isAdmin();
+      allow read: if false;
       allow create: if isAuthenticated();
       allow update: if false;
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /analytics/{analyticId} {
-      allow read: if isAdmin();
+      allow read: if false;
       allow create: if isAuthenticated();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update: if false;
+      allow delete: if false;
     }
 
     // ============================================
@@ -747,7 +653,6 @@ service cloud.firestore {
     match /support-tickets/{ticketId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
-                     isAdmin() ||
                      isConcierge()
                    );
 
@@ -756,11 +661,10 @@ service cloud.firestore {
 
       allow update: if isAuthenticated() && (
                        resource.data.userId == request.auth.uid ||
-                       isAdmin() ||
                        isConcierge()
                      );
 
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     // ============================================
@@ -769,7 +673,7 @@ service cloud.firestore {
 
     match /settings/{settingId} {
       allow read: if true;  // Public settings like service availability
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     // ============================================

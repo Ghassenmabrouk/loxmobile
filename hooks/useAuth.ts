@@ -68,8 +68,6 @@ export function useAuth() {
 
       if (role === 'driver') {
         router.replace('/(tabs)/driver-home');
-      } else if (role === 'admin') {
-        router.replace('/(tabs)/admin');
       } else {
         router.replace('/(tabs)/on-time-home');
       }
@@ -113,8 +111,6 @@ export function useAuth() {
 
       if (role === 'driver') {
         router.replace('/(tabs)/driver-home');
-      } else if (role === 'admin') {
-        router.replace('/(tabs)/admin');
       } else {
         router.replace('/(tabs)/on-time-home');
       }
@@ -141,8 +137,6 @@ export function useAuth() {
 
       if (role === 'driver') {
         router.replace('/(tabs)/driver-home');
-      } else if (role === 'admin') {
-        router.replace('/(tabs)/admin');
       } else {
         router.replace('/(tabs)/on-time-home');
       }

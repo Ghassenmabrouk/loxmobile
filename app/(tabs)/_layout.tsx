@@ -14,7 +14,6 @@ export default function TabLayout() {
   }
 
   const userRole = userData?.role || 'user';
-  const isAdmin = userRole === 'admin';
   const isDriver = userRole === 'driver';
   const isUser = userRole === 'user' || !userRole;
 
@@ -41,7 +40,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ size, color }) => <Ionicons name="home" size={size} color={color} />,
-          href: isUser || isAdmin ? '/(tabs)/on-time-home' : null,
+          href: isUser ? '/(tabs)/on-time-home' : null,
         }}
       />
 
@@ -69,15 +68,6 @@ export default function TabLayout() {
           title: 'Schedule',
           tabBarIcon: ({ size, color }) => <Ionicons name="calendar" size={size} color={color} />,
           href: isDriver ? '/(tabs)/driver-schedule' : null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: 'Admin',
-          tabBarIcon: ({ size, color }) => <Ionicons name="shield" size={size} color={color} />,
-          href: isAdmin ? '/(tabs)/admin' : null,
         }}
       />
 

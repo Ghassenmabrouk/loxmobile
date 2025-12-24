@@ -320,7 +320,7 @@ async function logMissionEvent(params: {
   missionId: string;
   eventType: string;
   userId: string;
-  userRole: 'client' | 'driver' | 'system' | 'admin';
+  userRole: 'client' | 'driver' | 'system';
   location?: { latitude: number; longitude: number };
   details: Record<string, any>;
   anomaly?: any;

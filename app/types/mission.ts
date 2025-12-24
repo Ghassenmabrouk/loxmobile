@@ -140,7 +140,7 @@ export interface MissionLog {
     | 'document_scanned';
   timestamp: Date;
   userId: string;
-  userRole: 'client' | 'driver' | 'system' | 'admin';
+  userRole: 'client' | 'driver' | 'system';
   location?: { latitude: number; longitude: number };
   details: Record<string, any>;
   anomaly?: {

@@ -1,4 +1,4 @@
-export type UserRole = 'client' | 'driver' | 'admin' | 'corporate';
+export type UserRole = 'client' | 'driver' | 'corporate';
 export type SecurityClearance = 'standard' | 'discreet' | 'confidential' | 'critical';
 export type AccountType = 'private' | 'corporate';
 export type UserStatus = 'active' | 'suspended' | 'pending';

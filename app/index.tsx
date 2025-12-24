@@ -18,8 +18,6 @@ export default function Index() {
 
     if (role === 'driver') {
       return <Redirect href="/(tabs)/driver-home" />;
-    } else if (role === 'admin') {
-      return <Redirect href="/(tabs)/admin" />;
     } else {
       return <Redirect href="/(tabs)/on-time-home" />;
     }

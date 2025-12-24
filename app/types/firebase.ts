@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 
 export type VipLevel = 'none' | 'silver' | 'gold' | 'diamond';
-export type UserRole = 'client' | 'admin' | 'driver';
+export type UserRole = 'client' | 'driver';
 export type Gender = 'male' | 'female' | 'other';
 export type SecurityClearance = 'standard' | 'discreet' | 'confidential' | 'critical';
 

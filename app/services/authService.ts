@@ -111,55 +111,82 @@ export const authService = {
   },
 
   async getUserData(userId: string): Promise<FirebaseUser | null> {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      return userDoc.data() as FirebaseUser;
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        return userDoc.data() as FirebaseUser;
+      }
+      return null;
+    } catch (error) {
+      console.error('[AUTH] Error getting user data:', error);
+      return null;
     }
-    return null;
   },
 
   async migrateUserDocument(userId: string): Promise<void> {
-    const userDocRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userDocRef);
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
 
-    if (!userDoc.exists()) {
-      return;
-    }
+      if (!userDoc.exists()) {
+        return;
+      }
 
-    const userData = userDoc.data();
-    const updates: any = {};
+      const userData = userDoc.data();
+      const updates: any = {};
+      let needsUpdate = false;
 
-    if (!userData.userId) {
-      updates.userId = userId;
-    }
+      if (!userData.userId) {
+        updates.userId = userId;
+        needsUpdate = true;
+      }
 
-    if (!userData.anonymousCode) {
-      updates.anonymousCode = await generateAnonymousCode('client');
-    }
+      if (!userData.anonymousCode) {
+        updates.anonymousCode = await generateAnonymousCode('client');
+        needsUpdate = true;
+      }
 
-    if (!userData.status) {
-      updates.status = 'active';
-    }
+      if (!userData.status) {
+        updates.status = 'active';
+        needsUpdate = true;
+      }
 
-    if (userData.role === 'user') {
-      updates.role = 'client';
-    }
+      if (userData.role === 'user') {
+        updates.role = 'client';
+        needsUpdate = true;
+      }
 
-    if (!userData.role) {
-      updates.role = 'client';
-    }
+      if (!userData.role) {
+        updates.role = 'client';
+        needsUpdate = true;
+      }
 
-    if (!userData.securityClearance) {
-      updates.securityClearance = 'standard';
-    }
+      if (!userData.securityClearance) {
+        updates.securityClearance = 'standard';
+        needsUpdate = true;
+      }
 
-    if (!userData.phoneNumber) {
-      updates.phoneNumber = '';
-    }
+      if (!userData.phoneNumber) {
+        updates.phoneNumber = '';
+        needsUpdate = true;
+      }
 
-    if (Object.keys(updates).length > 0) {
-      updates.updatedAt = serverTimestamp();
-      await setDoc(userDocRef, updates, { merge: true });
+      if (needsUpdate) {
+        const fullUpdate = {
+          ...userData,
+          ...updates,
+          userId: updates.userId || userData.userId || userId,
+          anonymousCode: updates.anonymousCode || userData.anonymousCode,
+          status: updates.status || userData.status || 'active',
+          role: updates.role || userData.role || 'client',
+          email: userData.email,
+          phoneNumber: updates.phoneNumber !== undefined ? updates.phoneNumber : (userData.phoneNumber || ''),
+          updatedAt: serverTimestamp(),
+        };
+        await setDoc(userDocRef, fullUpdate, { merge: true });
+      }
+    } catch (error) {
+      console.error('[AUTH] Migration error:', error);
     }
   }
 };

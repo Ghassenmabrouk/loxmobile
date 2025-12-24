@@ -35,13 +35,18 @@ export function useAuth() {
         setUser(firebaseUser);
         setIsAuthenticated(true);
 
-        await authService.migrateUserDocument(firebaseUser.uid);
+        try {
+          await authService.migrateUserDocument(firebaseUser.uid);
 
-        const userDoc = await authService.getUserData(firebaseUser.uid);
-        setUserData(userDoc);
+          const userDoc = await authService.getUserData(firebaseUser.uid);
+          setUserData(userDoc);
 
-        if (userDoc) {
-          await setSecureItem('userRole', userDoc.role);
+          if (userDoc) {
+            await setSecureItem('userRole', userDoc.role);
+          }
+        } catch (error) {
+          console.error('[AUTH] Error loading user data:', error);
+          setUserData(null);
         }
       } else {
         setUser(null);

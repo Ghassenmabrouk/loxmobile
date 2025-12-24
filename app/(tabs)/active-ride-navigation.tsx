@@ -176,8 +176,9 @@ export default function ActiveRideNavigation() {
         <View style={styles.mapContainer}>
           {coords ? (
             <NavigationMap
+              driverLocation={coords.pickup}
               destination={coords.destination}
-              pickupLocation={coords.pickup}
+              destinationName={ride.destinations[0].destinationName}
             />
           ) : (
             <View style={styles.mapPlaceholder}>

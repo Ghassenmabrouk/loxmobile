@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { ProfileService, UserProfile, UserSettings, SavedLocation } from '@/app/services/profileService';
 import PaymentMethodsModal from '@/components/PaymentMethodsModal';
+import FakeLocationAutocomplete from '@/components/FakeLocationAutocomplete';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -37,6 +38,8 @@ export default function ProfileScreen() {
 
   const [newLocationLabel, setNewLocationLabel] = useState('');
   const [newLocationAddress, setNewLocationAddress] = useState('');
+  const [newLocationLatitude, setNewLocationLatitude] = useState<number | undefined>();
+  const [newLocationLongitude, setNewLocationLongitude] = useState<number | undefined>();
 
   useEffect(() => {
     loadUserData();
@@ -110,6 +113,8 @@ export default function ProfileScreen() {
     const newLocation = await ProfileService.addSavedLocation(user.uid, {
       label: newLocationLabel,
       address: newLocationAddress,
+      latitude: newLocationLatitude,
+      longitude: newLocationLongitude,
       is_favorite: false,
     });
 
@@ -117,6 +122,8 @@ export default function ProfileScreen() {
       setSavedLocations([newLocation, ...savedLocations]);
       setNewLocationLabel('');
       setNewLocationAddress('');
+      setNewLocationLatitude(undefined);
+      setNewLocationLongitude(undefined);
       setShowAddLocation(false);
       Alert.alert('Success', 'Location added successfully');
     } else {
@@ -541,13 +548,15 @@ export default function ProfileScreen() {
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Address</Text>
-              <TextInput
-                style={styles.input}
+              <FakeLocationAutocomplete
                 value={newLocationAddress}
                 onChangeText={setNewLocationAddress}
-                placeholder="Enter address"
-                placeholderTextColor="#999"
-                multiline
+                onSelectLocation={(location) => {
+                  setNewLocationAddress(location.address);
+                  setNewLocationLatitude(location.latitude);
+                  setNewLocationLongitude(location.longitude);
+                }}
+                placeholder="Search luxury locations"
               />
             </View>
 

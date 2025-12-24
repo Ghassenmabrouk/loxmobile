@@ -6,7 +6,8 @@ import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-font
 import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { SplashScreen } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { Head } from 'expo-router/head';
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -38,6 +39,14 @@ export default function RootLayout() {
 
   return (
     <>
+      {Platform.OS === 'web' && (
+        <Head>
+          <link
+            href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
+            rel="stylesheet"
+          />
+        </Head>
+      )}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

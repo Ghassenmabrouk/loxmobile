@@ -9,9 +9,7 @@ import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
 import { driverService } from '@/app/services/driverService';
 import { useLocation } from '@/hooks/useLocation';
-import Mapbox from '@rnmapbox/maps';
-
-Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN || '');
+import { NavigationMap } from '@/components/NavigationMap';
 
 interface RideDetail {
   id: string;
@@ -159,62 +157,31 @@ export default function DriverRideDetailScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {rideStarted && location && ride.destinations?.[0]?.location && (
-          <View style={styles.navigationCard}>
-            <View style={styles.mapHeader}>
-              <View style={styles.navigationHeaderInline}>
-                <Ionicons name="navigate" size={24} color="#2196F3" />
-                <Text style={styles.navigationTitleInline}>Navigation Active</Text>
-              </View>
-              <View style={styles.destinationInfoInline}>
-                <Ionicons name="flag" size={16} color="#D4AF37" />
-                <Text style={styles.destinationTextInline} numberOfLines={1}>
-                  {ride.destinations[0].destinationName}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.mapContainer}>
-              <Mapbox.MapView style={styles.map}>
-                <Mapbox.Camera
-                  zoomLevel={14}
-                  centerCoordinate={[location.coords.longitude, location.coords.latitude]}
-                  animationMode="flyTo"
-                  animationDuration={1000}
+        {rideStarted && location && ride.destinations?.[0]?.location && (() => {
+          try {
+            const destCoords = ride.destinations[0].location.split(',');
+            const destLat = parseFloat(destCoords[0].trim());
+            const destLng = parseFloat(destCoords[1].trim());
+            if (!isNaN(destLat) && !isNaN(destLng)) {
+              return (
+                <NavigationMap
+                  driverLocation={{
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                  }}
+                  destination={{
+                    latitude: destLat,
+                    longitude: destLng,
+                  }}
+                  destinationName={ride.destinations[0].destinationName}
                 />
-                <Mapbox.PointAnnotation
-                  id="userLocation"
-                  coordinate={[location.coords.longitude, location.coords.latitude]}
-                >
-                  <View style={styles.carMarker}>
-                    <Ionicons name="car" size={32} color="#2196F3" />
-                  </View>
-                </Mapbox.PointAnnotation>
-                {(() => {
-                  try {
-                    const destCoords = ride.destinations[0].location.split(',');
-                    const destLat = parseFloat(destCoords[0].trim());
-                    const destLng = parseFloat(destCoords[1].trim());
-                    if (!isNaN(destLat) && !isNaN(destLng)) {
-                      return (
-                        <Mapbox.PointAnnotation
-                          id="destination"
-                          coordinate={[destLng, destLat]}
-                        >
-                          <View style={styles.destinationMarker}>
-                            <Ionicons name="flag" size={24} color="#D4AF37" />
-                          </View>
-                        </Mapbox.PointAnnotation>
-                      );
-                    }
-                  } catch (e) {
-                    console.error('Error parsing destination coordinates:', e);
-                  }
-                  return null;
-                })()}
-              </Mapbox.MapView>
-            </View>
-          </View>
-        )}
+              );
+            }
+          } catch (e) {
+            console.error('Error parsing destination coordinates:', e);
+          }
+          return null;
+        })()}
 
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
@@ -421,76 +388,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  navigationCard: {
-    margin: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  mapHeader: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  navigationHeaderInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  navigationTitleInline: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2196F3',
-  },
-  destinationInfoInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  destinationTextInline: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-    flex: 1,
-  },
-  mapContainer: {
-    width: '100%',
-    height: 400,
-  },
-  map: {
-    flex: 1,
-  },
-  carMarker: {
-    backgroundColor: '#FFFFFF',
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#2196F3',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  destinationMarker: {
-    backgroundColor: '#FFFFFF',
-    padding: 6,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: '#D4AF37',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
   },
   statusCard: {
     backgroundColor: '#FFFFFF',

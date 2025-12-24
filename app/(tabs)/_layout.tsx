@@ -13,7 +13,10 @@ export default function TabLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  const isAdmin = userData?.role === 'admin';
+  const userRole = userData?.role || 'user';
+  const isAdmin = userRole === 'admin';
+  const isDriver = userRole === 'driver';
+  const isUser = userRole === 'user' || !userRole;
 
   return (
     <Tabs
@@ -40,34 +43,46 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="track"
-        options={{
-          title: 'Track Ride',
-          tabBarIcon: ({ size, color }) => <Ionicons name="navigate" size={size} color={color} />,
-        }}
-      />
+
       <Tabs.Screen
         name="rides"
         options={{
           title: 'My Rides',
           tabBarIcon: ({ size, color }) => <Ionicons name="calendar" size={size} color={color} />,
+          href: isUser || isAdmin ? undefined : null,
         }}
       />
-      {isAdmin && (
-        <Tabs.Screen
-          name="admin"
-          options={{
-            title: 'Admin',
-            tabBarIcon: ({ size, color }) => <Ionicons name="shield" size={size} color={color} />,
-          }}
-        />
-      )}
+
+      <Tabs.Screen
+        name="driver-schedule"
+        options={{
+          title: 'Schedule',
+          tabBarIcon: ({ size, color }) => <Ionicons name="calendar-outline" size={size} color={color} />,
+          href: isDriver ? undefined : null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          tabBarIcon: ({ size, color }) => <Ionicons name="shield" size={size} color={color} />,
+          href: isAdmin ? undefined : null,
+        }}
+      />
+
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ size, color }) => <Ionicons name="person" size={size} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="track"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -78,6 +93,24 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="LocationAutocomplete"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="customer-home"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="driver-home"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="driver-ride-detail"
         options={{
           href: null,
         }}

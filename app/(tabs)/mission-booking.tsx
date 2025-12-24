@@ -1,21 +1,24 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Platform } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from '@/hooks/useLocation';
 import SecurityLevelSelector from '@/components/SecurityLevelSelector';
 import { createMission, calculatePrice } from '@/app/services/missionService';
 import { SecurityLevel, MissionType } from '@/app/types/mission';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/app/services/firebase';
 import { authService } from '@/app/services/authService';
+import { MapPin, Navigation } from 'lucide-react-native';
 
 export default function MissionBookingScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const params = useLocalSearchParams();
   const missionType = (params.type as MissionType) || 'person';
+  const { location, errorMsg } = useLocation();
 
   const [step, setStep] = useState(1);
   const [pickupAddress, setPickupAddress] = useState('');
@@ -30,6 +33,7 @@ export default function MissionBookingScreen() {
   const [userClearance, setUserClearance] = useState<SecurityLevel>('standard');
   const [anonymousCode, setAnonymousCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCurrentLocation, setIsLoadingCurrentLocation] = useState(false);
 
   const [senderOrg, setSenderOrg] = useState('');
   const [receiverOrg, setReceiverOrg] = useState('');
@@ -40,6 +44,35 @@ export default function MissionBookingScreen() {
   useEffect(() => {
     initializeUserData();
   }, [user]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleFocus = () => {
+        const locationData = window.localStorage.getItem('selectedLocation');
+        const fieldType = window.localStorage.getItem('locationField');
+
+        if (locationData && fieldType) {
+          const location = JSON.parse(locationData);
+
+          if (fieldType === 'pickup') {
+            setPickupAddress(location.address);
+            setPickupLat(location.latitude);
+            setPickupLng(location.longitude);
+          } else if (fieldType === 'dropoff') {
+            setDropoffAddress(location.address);
+            setDropoffLat(location.latitude);
+            setDropoffLng(location.longitude);
+          }
+
+          window.localStorage.removeItem('selectedLocation');
+          window.localStorage.removeItem('locationField');
+        }
+      };
+
+      window.addEventListener('focus', handleFocus);
+      return () => window.removeEventListener('focus', handleFocus);
+    }
+  }, []);
 
   async function initializeUserData() {
     if (!user) return;
@@ -79,6 +112,33 @@ export default function MissionBookingScreen() {
 
     const price = await calculatePrice(distance, duration, securityLevel);
     setPricing(price);
+  }
+
+  async function handleUseCurrentLocation() {
+    if (errorMsg) {
+      Alert.alert('Location Error', errorMsg);
+      return;
+    }
+
+    if (!location) {
+      setIsLoadingCurrentLocation(true);
+      return;
+    }
+
+    setPickupAddress('Current Location');
+    setPickupLat(location.coords.latitude);
+    setPickupLng(location.coords.longitude);
+    setIsLoadingCurrentLocation(false);
+  }
+
+  useEffect(() => {
+    if (isLoadingCurrentLocation && location) {
+      handleUseCurrentLocation();
+    }
+  }, [location, isLoadingCurrentLocation]);
+
+  function openLocationPicker(field: 'pickup' | 'dropoff') {
+    router.push(`/(tabs)/location-picker?field=${field}`);
   }
 
   async function handleBookMission() {
@@ -168,24 +228,39 @@ export default function MissionBookingScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Pickup Location</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter pickup address"
-            placeholderTextColor="#666"
-            value={pickupAddress}
-            onChangeText={setPickupAddress}
-          />
+          <TouchableOpacity
+            style={styles.locationInput}
+            onPress={() => openLocationPicker('pickup')}
+          >
+            <MapPin color="#666" size={20} style={styles.inputIcon} />
+            <Text style={[styles.locationInputText, pickupAddress && styles.locationInputTextFilled]}>
+              {pickupAddress || 'Select pickup location'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.currentLocationButton}
+            onPress={handleUseCurrentLocation}
+            disabled={isLoadingCurrentLocation}
+          >
+            <Navigation color="#D4AF37" size={18} />
+            <Text style={styles.currentLocationButtonText}>
+              {isLoadingCurrentLocation ? 'Getting location...' : 'Use my current location'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Dropoff Location</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter destination address"
-            placeholderTextColor="#666"
-            value={dropoffAddress}
-            onChangeText={setDropoffAddress}
-          />
+          <Text style={styles.inputLabel}>Destination</Text>
+          <TouchableOpacity
+            style={styles.locationInput}
+            onPress={() => openLocationPicker('dropoff')}
+          >
+            <MapPin color="#666" size={20} style={styles.inputIcon} />
+            <Text style={[styles.locationInputText, dropoffAddress && styles.locationInputTextFilled]}>
+              {dropoffAddress || 'Select destination'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -636,5 +711,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 18,
+  },
+  locationInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  locationInputText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#666',
+  },
+  locationInputTextFilled: {
+    color: '#ffffff',
+  },
+  currentLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+    gap: 8,
+  },
+  currentLocationButtonText: {
+    fontSize: 14,
+    color: '#D4AF37',
+    fontWeight: '600',
   },
 });

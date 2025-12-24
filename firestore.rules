@@ -3,7 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -22,18 +21,17 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver';
     }
 
-    function hasVipAccess(requiredLevel) {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      let userVipLevel = userDoc.vipAccess;
-      let vipLevels = ['none', 'silver', 'gold', 'diamond'];
-      let userLevelIndex = vipLevels.indexOf(userVipLevel);
-      let requiredLevelIndex = vipLevels.indexOf(requiredLevel);
-      return userLevelIndex >= requiredLevelIndex;
+    function isClient() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client';
     }
 
-    function isVipValid() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return userDoc.vipExpiresAt == null || userDoc.vipExpiresAt > request.time;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isUserActive() {
+      return getUserData().status == 'active';
     }
 
     function isValidEmail(email) {
@@ -44,357 +42,197 @@ service cloud.firestore {
       return phone.matches('^\\+?[0-9]{10,15}$');
     }
 
-    function isUserBanned() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return 'isBanned' in userDoc && userDoc.isBanned == true;
-    }
-
-    function isValidUserData(data) {
-      return data.keys().hasAll(['email', 'role']) &&
-             isValidEmail(data.email) &&
-             data.role in ['user', 'admin', 'driver'];
-    }
-
-    function hasProtectedUserFields() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isBanned', 'vipLevel', 'vipAccess', 'vipExpiresAt']);
-    }
-
-    function isValidBookingDates(checkIn, checkOut) {
-      return checkIn < checkOut && checkIn >= request.time;
-    }
-
-    function isBookingOwner(bookingUserId) {
-      return isAuthenticated() && request.auth.uid == bookingUserId;
-    }
-
-    function isValidBookingStatus(status) {
-      return status in ['pending', 'confirmed', 'cancelled', 'completed'];
-    }
-
-    function canModifyBooking() {
-      return resource.data.status in ['pending', 'confirmed'] &&
-             resource.data.checkIn > request.time;
-    }
-
-    function hasProtectedBookingFields() {
-      return request.resource.data.diff(resource.data).affectedKeys()
-        .hasAny(['userId', 'hotelId', 'totalPrice', 'createdAt', 'checkIn', 'checkOut', 'guests']);
-    }
-
-    // Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+
       allow create: if isAuthenticated() &&
                        isOwner(userId) &&
-                       isValidUserData(request.resource.data) &&
-                       request.resource.data.role in ['user', 'driver'];
-      allow update: if isAuthenticated() && (
-                       (isOwner(userId) && !hasProtectedUserFields()) ||
-                       isAdmin()
-                     );
-      allow delete: if isAdmin();
-    }
-
-    // Rides Collection - FOR LUXURY CAR BOOKING
-    match /rides/{rideId} {
-      allow read: if isAuthenticated() && !isUserBanned();
-
-      allow create: if isAuthenticated() &&
-                       !isUserBanned();
+                       request.resource.data.keys().hasAll(['userId', 'anonymousCode', 'role', 'email', 'phoneNumber']) &&
+                       request.resource.data.role in ['client', 'driver'];
 
       allow update: if isAuthenticated() && (
-                       resource.data.userId == request.auth.uid ||
-                       isDriver() ||
+                       (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'anonymousCode'])) ||
                        isAdmin()
                      );
 
-      allow delete: if isAuthenticated() && (
-                       isAdmin() ||
-                       resource.data.userId == request.auth.uid
-                     );
-    }
-
-    // Events Collection
-    match /events/{eventId} {
-      allow read: if isAuthenticated() &&
-                     !isUserBanned() &&
-                     (
-                       !('vipAccess' in resource.data) ||
-                       resource.data.vipAccess == null ||
-                       (hasVipAccess(resource.data.vipAccess) && isVipValid())
-                     );
-      allow create: if isAdmin() &&
-                       request.resource.data.keys().hasAll(['name', 'description', 'date', 'location', 'price', 'category', 'status', 'organizer']) &&
-                       request.resource.data.price >= 0 &&
-                       request.resource.data.availableSeats >= 0 &&
-                       request.resource.data.status in ['Active', 'Cancelled', 'Postponed', 'Completed'];
-      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Conversations Collection
-    match /conversations/{conversationId} {
+    match /missions/{missionId} {
       allow read: if isAuthenticated() && (
-                     request.auth.uid in resource.data.participantIds ||
-                     isAdmin()
-                   );
-      allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.auth.uid in request.resource.data.participantIds &&
-                       request.resource.data.keys().hasAll(['participantIds', 'status']);
-      allow update: if isAuthenticated() && (
-                       request.auth.uid in resource.data.participantIds ||
-                       isAdmin()
-                     );
-      allow delete: if isAdmin();
-
-      match /messages/{messageId} {
-        allow read: if isAuthenticated() && (
-                       request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds ||
-                       isAdmin()
-                     );
-        allow create: if isAuthenticated() &&
-                         !isUserBanned() &&
-                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds &&
-                         request.resource.data.senderId == request.auth.uid &&
-                         request.resource.data.keys().hasAll(['senderId', 'timestamp']);
-        allow update: if isAuthenticated() &&
-                         request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds &&
-                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
-        allow delete: if false;
-      }
-    }
-
-    // Payments Collection
-    match /payments/{paymentId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
-      allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll(['userId', 'amount', 'paymentMethod', 'status']) &&
-                       request.resource.data.amount > 0;
-      allow update: if false;
-      allow delete: if isAdmin();
-    }
-
-    // Payment Methods Collection
-    match /paymentMethods/{paymentMethodId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
-      allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll(['userId', 'type', 'card', 'isDefault', 'createdAt']);
-      allow update: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       (resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isAdmin();
-    }
-
-    // Payment History Collection
-    match /paymentHistory/{paymentHistoryId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
-      allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll(['userId', 'amount', 'currency', 'status', 'paymentIntentId', 'createdAt']);
-      allow update: if false;
-      allow delete: if isAdmin();
-    }
-
-    // Transfers Collection
-    match /transfers/{transferId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
+                     resource.data.clientId == request.auth.uid ||
                      resource.data.driverId == request.auth.uid ||
                      isAdmin()
                    );
+
       allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
+                       isUserActive() &&
+                       request.resource.data.clientId == request.auth.uid &&
                        request.resource.data.keys().hasAll([
-                         'userId', 'userName', 'userEmail', 'pickupLocation',
-                         'dropoffLocation', 'pickupDate', 'pickupTime', 'carType',
-                         'passengers', 'price', 'verificationCode', 'status'
+                         'missionCode', 'type', 'securityLevel', 'clientId',
+                         'clientCode', 'pickup', 'dropoff', 'status',
+                         'basePrice', 'totalPrice', 'currency', 'confirmationCode'
                        ]) &&
-                       isValidEmail(request.resource.data.userEmail) &&
-                       request.resource.data.passengers > 0 &&
-                       request.resource.data.passengers <= 8 &&
-                       request.resource.data.price > 0 &&
-                       request.resource.data.status in ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'];
+                       request.resource.data.type in ['person', 'document'] &&
+                       request.resource.data.securityLevel in ['standard', 'discreet', 'confidential', 'critical'] &&
+                       request.resource.data.status == 'pending';
+
       allow update: if isAuthenticated() && (
                        (
-                         resource.data.userId == request.auth.uid &&
+                         isClient() &&
+                         resource.data.clientId == request.auth.uid &&
                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
-                         request.resource.data.status == 'cancelled' &&
-                         resource.data.status in ['pending', 'confirmed']
+                         request.resource.data.status in ['cancelled']
                        ) ||
                        (
                          isDriver() &&
                          resource.data.driverId == request.auth.uid &&
                          request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                           'status', 'driverLocation', 'actualDuration', 'actualDistance',
-                           'startTime', 'endTime', 'updatedAt', 'qrCodeScanned', 'qrCodeScannedAt'
+                           'status', 'driverDepartedAt', 'driverArrivedAt',
+                           'missionStartedAt', 'missionCompletedAt', 'actualDuration',
+                           'confirmedAt', 'updatedAt', 'documentDetails'
                          ])
                        ) ||
                        isAdmin()
                      );
+
       allow delete: if isAdmin();
     }
 
-    // Drivers Collection
-    match /drivers/{driverId} {
-      allow read: if isAuthenticated() && !isUserBanned();
-      allow create: if isAdmin() &&
-                       request.resource.data.keys().hasAll(['name', 'email', 'phoneNumber', 'carModel', 'carPlate', 'carColor', 'carYear', 'carType', 'rating', 'totalRides', 'isAvailable']);
+    match /missionTracking/{missionId} {
+      allow read: if isAuthenticated() && (
+                     exists(/databases/$(database)/documents/missions/$(missionId)) &&
+                     (get(/databases/$(database)/documents/missions/$(missionId)).data.clientId == request.auth.uid ||
+                      get(/databases/$(database)/documents/missions/$(missionId)).data.driverId == request.auth.uid ||
+                      isAdmin())
+                   );
+
+      allow create: if isAuthenticated() &&
+                       isDriver() &&
+                       exists(/databases/$(database)/documents/missions/$(missionId)) &&
+                       get(/databases/$(database)/documents/missions/$(missionId)).data.driverId == request.auth.uid;
+
+      allow update: if isAuthenticated() &&
+                       isDriver() &&
+                       resource.data.driverId == request.auth.uid;
+
+      allow delete: if isAdmin();
+    }
+
+    match /missionLogs/{logId} {
+      allow read: if isAuthenticated() && (
+                     exists(/databases/$(database)/documents/missions/$(resource.data.missionId)) &&
+                     (get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.clientId == request.auth.uid ||
+                      get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.driverId == request.auth.uid ||
+                      isAdmin())
+                   );
+
+      allow create: if isAuthenticated() && isUserActive();
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /securityLevels/{levelId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /driverProfiles/{driverId} {
+      allow read: if isAuthenticated() && (
+                     isOwner(driverId) ||
+                     isAdmin()
+                   );
+
+      allow create: if isAuthenticated() &&
+                       isOwner(driverId) &&
+                       isDriver() &&
+                       request.resource.data.keys().hasAll([
+                         'driverId', 'driverCode', 'certificationLevel',
+                         'backgroundCheck', 'vehicle', 'status'
+                       ]);
+
       allow update: if isAuthenticated() && (
-                       (isDriver() && isOwner(driverId) &&
-                        request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                          'currentLocation', 'isAvailable', 'updatedAt'
+                       (isOwner(driverId) &&
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                          'driverId', 'driverCode', 'certificationLevel',
+                          'backgroundCheck', 'stats', 'commissionRate', 'subscriptionTier'
                         ])) ||
                        isAdmin()
                      );
+
       allow delete: if isAdmin();
     }
 
-    // Hotels Collection
-    match /hotels/{hotelId} {
-      allow read: if isAuthenticated() && !isUserBanned();
-      allow create: if isAdmin() &&
-                       request.resource.data.keys().hasAll(['name', 'location', 'price']);
+    match /corporateAccounts/{corporateId} {
+      allow read: if isAuthenticated() && (
+                     request.auth.uid in resource.data.authorizedUsers ||
+                     isAdmin()
+                   );
+
+      allow create: if isAdmin();
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Hotel Bookings Collection
-    match /hotel-bookings/{bookingId} {
+    match /documentReports/{reportId} {
+      allow read: if isAuthenticated() && (
+                     exists(/databases/$(database)/documents/missions/$(resource.data.missionId)) &&
+                     (get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.clientId == request.auth.uid ||
+                      get(/databases/$(database)/documents/missions/$(resource.data.missionId)).data.driverId == request.auth.uid ||
+                      isAdmin())
+                   );
+
+      allow create: if isAuthenticated() &&
+                       (isDriver() || isAdmin());
+
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
                      isAdmin()
                    );
-      allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll([
-                         'userId', 'hotelId', 'checkIn', 'checkOut',
-                         'guests', 'totalPrice', 'status', 'createdAt'
-                       ]) &&
-                       isValidBookingDates(request.resource.data.checkIn, request.resource.data.checkOut) &&
-                       request.resource.data.guests > 0 &&
-                       request.resource.data.totalPrice > 0 &&
-                       isValidBookingStatus(request.resource.data.status) &&
-                       (
-                         !('vipAccess' in request.resource.data) ||
-                         request.resource.data.vipAccess == null ||
-                         (hasVipAccess(request.resource.data.vipAccess) && isVipValid())
-                       );
-      allow update: if isAuthenticated() && (
-                       (
-                         isBookingOwner(resource.data.userId) &&
-                         canModifyBooking() &&
-                         !hasProtectedBookingFields() &&
-                         request.resource.data.status == 'cancelled'
-                       ) ||
-                       isAdmin()
-                     );
-      allow delete: if isAdmin();
 
-      match /reviews/{reviewId} {
-        allow read: if isAuthenticated() && !isUserBanned();
-        allow create: if isAuthenticated() &&
-                         !isUserBanned() &&
-                         get(/databases/$(database)/documents/hotel-bookings/$(bookingId)).data.userId == request.auth.uid &&
-                         get(/databases/$(database)/documents/hotel-bookings/$(bookingId)).data.status == 'completed' &&
-                         request.resource.data.userId == request.auth.uid &&
-                         request.resource.data.keys().hasAll(['userId', 'rating', 'comment', 'createdAt']) &&
-                         request.resource.data.rating >= 1 &&
-                         request.resource.data.rating <= 5;
-        allow update: if isAuthenticated() &&
-                         resource.data.userId == request.auth.uid &&
-                         request.time < resource.data.createdAt + duration.value(7, 'd') &&
-                         request.resource.data.userId == resource.data.userId;
-        allow delete: if isAdmin();
-      }
-    }
+      allow create: if isAuthenticated();
 
-    // Restaurants Collection
-    match /restaurants/{restaurantId} {
-      allow read: if isAuthenticated() && !isUserBanned();
-      allow create: if isAdmin() &&
-                       request.resource.data.keys().hasAll(['name', 'location', 'cuisine']);
-      allow update: if isAdmin();
+      allow update: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+
       allow delete: if isAdmin();
     }
 
-    // Jobs Collection
-    match /jobs/{jobId} {
-      allow read: if isAuthenticated() && !isUserBanned();
-      allow create: if isAdmin() &&
-                       request.resource.data.keys().hasAll(['title', 'description', 'location']);
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // Career Applications Collection
-    match /career-applications/{applicationId} {
+    match /paymentMethods/{paymentMethodId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
                      isAdmin()
                    );
+
       allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll(['userId', 'name', 'email', 'position']);
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+                       isUserActive() &&
+                       request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // Pickup Requests Collection
-    match /pickup-requests/{requestId} {
+    match /paymentHistory/{paymentHistoryId} {
       allow read: if isAuthenticated() && (
                      resource.data.userId == request.auth.uid ||
                      isAdmin()
                    );
-      allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll(['userId', 'pickupLocation', 'dropoffLocation', 'date']);
-      allow update: if isAdmin();
+
+      allow create: if isAuthenticated();
+      allow update: if false;
       allow delete: if isAdmin();
     }
 
-    // WhatsApp Messages Collection
-    match /whatsapp-messages/{messageId} {
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
-                     isAdmin()
-                   );
-      allow create: if isAuthenticated() &&
-                       !isUserBanned() &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.keys().hasAll(['userId', 'message']);
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // News Collection
-    match /news/{newsId} {
-      allow read: if isAuthenticated() && !isUserBanned();
-      allow create: if isAdmin() &&
-                       request.resource.data.keys().hasAll(['title', 'content', 'author', 'publishedDate']);
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;
     }
